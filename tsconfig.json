@@ -1,34 +1,85 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
+    // ─── Strictness ───────────────────────────────────────────────
     "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": false,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    // ─── Module Resolution ────────────────────────────────────────
+    "target": "ES2022",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "ES2022"
+    ],
+    "module": "ESNext",
     "moduleResolution": "bundler",
-    "resolveJsonModule": true,
+    "moduleDetection": "force",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    // ─── JSX ──────────────────────────────────────────────────────
+    "jsx": "preserve",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    // ─── Paths ────────────────────────────────────────────────────
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@/features/*": [
+        "./features/*"
+      ],
+      "@/components/*": [
+        "./components/*"
+      ],
+      "@/lib/*": [
+        "./lib/*"
+      ],
+      "@/hooks/*": [
+        "./hooks/*"
+      ],
+      "@/services/*": [
+        "./services/*"
+      ],
+      "@/repositories/*": [
+        "./repositories/*"
+      ],
+      "@/types/*": [
+        "./lib/types/*"
+      ]
+    },
+    // ─── Output ───────────────────────────────────────────────────
+    "noEmit": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
     "incremental": true,
+    // ─── Plugins ──────────────────────────────────────────────────
     "plugins": [
       {
         "name": "next"
       }
     ],
-    "paths": {
-      "@/*": ["./*"]
-    }
+    // ─── Source Maps ──────────────────────────────────────────────
+    "sourceMap": true,
+    "declarationMap": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    ".next",
+    "out",
+    "coverage",
+    "storybook-static"
+  ]
 }

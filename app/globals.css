@@ -1,26 +1,539 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ═══════════════════════════════════════════════════════════════════
+   ONE PERCENT — Design System CSS Variables
+   Source of truth for all design tokens.
+   All components must reference these variables, never raw hex values.
+═══════════════════════════════════════════════════════════════════ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* ─── Background Scale ─────────────────────────────────────── */
+    --color-bg-base:      #09090B;
+    --color-bg-surface:   #18181B;
+    --color-bg-elevated:  #27272A;
+    --color-bg-overlay:   rgba(0, 0, 0, 0.6);
+
+    /* ─── Border Scale ─────────────────────────────────────────── */
+    --color-border-default: #3F3F46;
+    --color-border-subtle:  #27272A;
+    --color-border-strong:  #52525B;
+    --color-border-focus:   #22C55E;
+
+    /* ─── Text Scale ───────────────────────────────────────────── */
+    --color-text-primary:     #F4F4F5;
+    --color-text-secondary:   #A1A1AA;
+    --color-text-disabled:    #52525B;
+    --color-text-placeholder: #71717A;
+    --color-text-inverse:     #09090B;
+    --color-text-link:        #22C55E;
+
+    /* ─── Brand Accent ─────────────────────────────────────────── */
+    --color-accent:         #22C55E;
+    --color-accent-hover:   #16A34A;
+    --color-accent-pressed: #15803D;
+    --color-accent-muted:   #052E16;
+
+    /* ─── Semantic Status ──────────────────────────────────────── */
+    --color-positive:         #22C55E;
+    --color-positive-bg:      #052E16;
+    --color-positive-border:  #166534;
+    --color-warning:          #F59E0B;
+    --color-warning-bg:       #78350F;
+    --color-warning-border:   #92400E;
+    --color-negative:         #EF4444;
+    --color-negative-bg:      #7F1D1D;
+    --color-negative-border:  #991B1B;
+    --color-info:             #3B82F6;
+    --color-info-bg:          #1E3A5F;
+    --color-neutral:          #71717A;
+
+    /* ─── Chart Series Colors ──────────────────────────────────── */
+    --chart-1: #22C55E;
+    --chart-2: #3B82F6;
+    --chart-3: #A78BFA;
+    --chart-4: #F59E0B;
+    --chart-5: #F472B6;
+    --chart-6: #34D399;
+    --chart-7: #60A5FA;
+    --chart-8: #FCD34D;
+
+    /* ─── Typography ───────────────────────────────────────────── */
+    --font-sans: "Geist", system-ui, -apple-system, BlinkMacSystemFont,
+      "Segoe UI", sans-serif;
+    --font-mono: "Geist Mono", "SF Mono", "Fira Code", "Cascadia Code",
+      monospace;
+
+    /* ─── Spacing (8pt Grid) ───────────────────────────────────── */
+    --space-0-5: 2px;
+    --space-1:   4px;
+    --space-2:   8px;
+    --space-3:   12px;
+    --space-4:   16px;
+    --space-5:   20px;
+    --space-6:   24px;
+    --space-8:   32px;
+    --space-10:  40px;
+    --space-12:  48px;
+    --space-14:  56px;
+    --space-16:  64px;
+    --space-20:  80px;
+    --space-24:  96px;
+    --space-32:  128px;
+
+    /* ─── Border Radius ────────────────────────────────────────── */
+    --radius-xs:   2px;
+    --radius-sm:   4px;
+    --radius-md:   6px;
+    --radius-lg:   8px;
+    --radius-xl:   12px;
+    --radius-2xl:  16px;
+    --radius-3xl:  24px;
+    --radius-full: 9999px;
+
+    /* ─── Shadows ──────────────────────────────────────────────── */
+    --shadow-xs:          0 1px 2px 0 rgba(0, 0, 0, 0.4);
+    --shadow-sm:          0 1px 3px 0 rgba(0, 0, 0, 0.5),
+                          0 1px 2px -1px rgba(0, 0, 0, 0.4);
+    --shadow-md:          0 4px 6px -1px rgba(0, 0, 0, 0.5),
+                          0 2px 4px -2px rgba(0, 0, 0, 0.4);
+    --shadow-lg:          0 10px 15px -3px rgba(0, 0, 0, 0.6),
+                          0 4px 6px -4px rgba(0, 0, 0, 0.4);
+    --shadow-xl:          0 20px 25px -5px rgba(0, 0, 0, 0.6),
+                          0 8px 10px -6px rgba(0, 0, 0, 0.4);
+    --shadow-inner:       inset 0 2px 4px 0 rgba(0, 0, 0, 0.4);
+    --shadow-focus:       0 0 0 3px rgba(34, 197, 94, 0.35);
+    --shadow-focus-error: 0 0 0 3px rgba(239, 68, 68, 0.35);
+
+    /* ─── Motion ───────────────────────────────────────────────── */
+    --duration-instant:   50ms;
+    --duration-fast:      100ms;
+    --duration-quick:     150ms;
+    --duration-base:      200ms;
+    --duration-slow:      300ms;
+    --duration-deliberate: 400ms;
+    --ease-out:           cubic-bezier(0.0, 0.0, 0.2, 1);
+    --ease-in:            cubic-bezier(0.4, 0.0, 1, 1);
+    --ease-standard:      cubic-bezier(0.4, 0.0, 0.2, 1);
+
+    /* ─── Layout Constants ─────────────────────────────────────── */
+    --sidebar-width:     240px;
+    --sidebar-collapsed: 64px;
+    --topbar-height:     56px;
+    --content-max-width: 1440px;
+    --mobile-nav-height: 56px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ═══════════════════════════════════════════════════════════════════
+   GLOBAL BASE STYLES
+═══════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    border-color: var(--color-border-default);
+  }
+
+  html {
+    font-family: var(--font-sans);
+    background-color: var(--color-bg-base);
+    color: var(--color-text-secondary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-bg-base);
+  }
+
+  /* ─── Selection ──────────────────────────────────────────────── */
+  ::selection {
+    background-color: rgba(34, 197, 94, 0.25);
+    color: var(--color-text-primary);
+  }
+
+  /* ─── Focus Ring (Global Default) ───────────────────────────── */
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus);
+    border-radius: var(--radius-md);
+  }
+
+  /* ─── Scrollbar Styling (Dark) ───────────────────────────────── */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: #3F3F46;
+    border-radius: var(--radius-full);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #52525B;
+  }
+
+  /* ─── Typography Reset ───────────────────────────────────────── */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--color-text-primary);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  p {
+    line-height: 1.6;
+  }
+
+  a {
+    color: var(--color-text-link);
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+  a:hover {
+    color: var(--color-accent-hover);
+  }
+
+  /* ─── Input Number — Remove Spinners ─────────────────────────── */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  /* ─── Tap Highlight (Mobile) ─────────────────────────────────── */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TYPOGRAPHY UTILITIES
+═══════════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+  /* ─── Data / Monospace Values ────────────────────────────────── */
+  .data-xl {
+    font-family: var(--font-mono);
+    font-size: 24px;
+    line-height: 32px;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  .data-lg {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    line-height: 24px;
+    font-weight: 600;
+  }
+  .data-md {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+  }
+  .data-sm {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 400;
+  }
+
+  /* ─── Label Utilities ────────────────────────────────────────── */
+  .label-lg {
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.02em;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+  .label-md {
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+  .label-sm {
+    font-size: 11px;
+    line-height: 14px;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  /* ─── Text Color Utilities ───────────────────────────────────── */
+  .text-primary   { color: var(--color-text-primary); }
+  .text-secondary { color: var(--color-text-secondary); }
+  .text-disabled  { color: var(--color-text-disabled); }
+  .text-positive  { color: var(--color-positive); }
+  .text-warning   { color: var(--color-warning); }
+  .text-negative  { color: var(--color-negative); }
+
+  /* ─── Background Utilities ───────────────────────────────────── */
+  .bg-base     { background-color: var(--color-bg-base); }
+  .bg-surface  { background-color: var(--color-bg-surface); }
+  .bg-elevated { background-color: var(--color-bg-elevated); }
+
+  /* ─── Elevation Utilities ────────────────────────────────────── */
+  .elevation-0 {
+    background-color: var(--color-bg-base);
+  }
+  .elevation-1 {
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border-subtle);
+  }
+  .elevation-2 {
+    background-color: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-default);
+    box-shadow: var(--shadow-sm);
+  }
+  .elevation-4 {
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+    box-shadow: var(--shadow-xl);
+  }
+
+  /* ─── Interaction Utilities ──────────────────────────────────── */
+  .interactive {
+    transition: background-color var(--duration-fast) var(--ease-out),
+                border-color var(--duration-fast) var(--ease-out),
+                color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-fast) var(--ease-out);
+    cursor: pointer;
+  }
+  .interactive:hover {
+    background-color: var(--color-bg-elevated);
+  }
+  .interactive:active {
+    transform: scale(0.98);
+  }
+
+  /* ─── Card Utility ───────────────────────────────────────────── */
+  .card {
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+  }
+  .card-label {
+    font-size: 11px;
+    line-height: 14px;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+  }
+
+  /* ─── Skeleton Animation ─────────────────────────────────────── */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--color-bg-elevated) 25%,
+      #3F3F46 50%,
+      var(--color-bg-elevated) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s linear infinite;
+    border-radius: var(--radius-sm);
+  }
+
+  @keyframes skeleton-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ─── Reduced Motion: Disable all animations ─────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    .skeleton {
+      animation: none;
+      background: var(--color-bg-elevated);
+    }
+  }
+
+  /* ─── Focus Trap Indicator ───────────────────────────────────── */
+  .focus-ring:focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus);
+  }
+  .focus-ring-error:focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus-error);
+  }
+
+  /* ─── Visually Hidden (Accessibility) ───────────────────────── */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   APP SHELL LAYOUT
+═══════════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .app-shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr;
+    grid-template-rows: var(--topbar-height) 1fr;
+    min-height: 100dvh;
+    background-color: var(--color-bg-base);
+    transition: grid-template-columns var(--duration-base) var(--ease-standard);
+  }
+
+  .app-shell[data-sidebar-collapsed="true"] {
+    grid-template-columns: var(--sidebar-collapsed) 1fr;
+  }
+
+  .app-sidebar {
+    grid-row: 1 / -1;
+    width: var(--sidebar-width);
+    background-color: var(--color-bg-elevated);
+    border-right: 1px solid var(--color-border-subtle);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100dvh;
+    z-index: 40;
+    transition: width var(--duration-base) var(--ease-standard);
+  }
+
+  .app-sidebar[data-collapsed="true"] {
+    width: var(--sidebar-collapsed);
+  }
+
+  .app-topbar {
+    position: sticky;
+    top: 0;
+    height: var(--topbar-height);
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-6);
+    background-color: var(--color-bg-base);
+    border-bottom: 1px solid transparent;
+    z-index: 30;
+    transition: border-color var(--duration-fast) var(--ease-out);
+  }
+
+  .app-topbar[data-scrolled="true"] {
+    border-bottom-color: var(--color-border-subtle);
+  }
+
+  .app-content {
+    margin-left: var(--sidebar-width);
+    transition: margin-left var(--duration-base) var(--ease-standard);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Mobile: no sidebar offset */
+  @media (max-width: 1023px) {
+    .app-content {
+      margin-left: 0;
+      padding-bottom: var(--mobile-nav-height);
+    }
+    .app-sidebar {
+      transform: translateX(-100%);
+    }
+    .app-sidebar[data-open="true"] {
+      transform: translateX(0);
+      box-shadow: var(--shadow-xl);
+    }
+  }
+
+  /* ─── Mobile Bottom Navigation ───────────────────────────────── */
+  .mobile-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--mobile-nav-height);
+    background-color: var(--color-bg-elevated);
+    border-top: 1px solid var(--color-border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    z-index: 40;
+    padding: 0 var(--space-2);
+  }
+
+  @media (min-width: 1024px) {
+    .mobile-nav {
+      display: none;
+    }
+  }
+
+  /* ─── Active Workout Banner ──────────────────────────────────── */
+  .workout-banner {
+    background-color: var(--color-bg-surface);
+    border-bottom: 1px solid var(--color-border-default);
+    padding: var(--space-2) var(--space-6);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    font-size: 14px;
+    color: var(--color-text-secondary);
+  }
+
+  /* ─── Page Layout ────────────────────────────────────────────── */
+  .page-container {
+    flex: 1;
+    padding: var(--space-6);
+    max-width: var(--content-max-width);
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    margin-bottom: var(--space-8);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  .page-title {
+    font-size: 22px;
+    line-height: 30px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-text-primary);
+  }
 }
