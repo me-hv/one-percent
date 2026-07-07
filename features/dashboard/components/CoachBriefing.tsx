@@ -1,13 +1,57 @@
 "use client"
 
+import { useMemo } from "react"
 import { Sparkles, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { ROUTES } from "@/lib/constants/ROUTES"
 import { useAuthStore } from "@/lib/store/auth.store"
+import { useBodyStore } from "@/features/body/store/body.store"
+import { useProgramsStore } from "@/features/training/store/programs.store"
 
 export function CoachBriefing() {
   const { profile } = useAuthStore()
+  const { recoveryScores, sleepLogs } = useBodyStore()
+  const { programs } = useProgramsStore()
   const firstName = profile?.displayName?.split(" ")[0] || "Athlete"
+
+  const insights = useMemo(() => {
+    // 1. Get latest recovery metrics
+    const latestRecovery = recoveryScores[0]
+    const latestSleep = sleepLogs[0]
+
+    const score = latestRecovery?.score ?? 85
+    const hrv = latestRecovery?.hrv ?? 72
+    const sleepHrs = latestSleep
+      ? Math.round((latestSleep.durationSeconds / 3600) * 10) / 10
+      : 7.5
+
+    // 2. Get active training program recommendation
+    const activeProg = programs.find((p) => p.isActive && !p.isArchived)
+    let sessionRecommendation = "a custom session"
+    if (activeProg && activeProg.days.length > 0) {
+      // Find a day that is not a rest day, default to day 1
+      const workoutDay = activeProg.days.find((d) => !d.isRestDay) || activeProg.days[0]
+      sessionRecommendation = `your scheduled ${workoutDay?.name || "session"}`
+    }
+
+    // 3. Status wording
+    let status = "Optimal"
+    if (score < 50) status = "Low (Rest advised)"
+    else if (score < 75) status = "Moderate"
+
+    const instruction =
+      score < 50
+        ? "Today is a red light. Prioritize active recovery, mobility flow, and hydration."
+        : `Today is a green light for ${sessionRecommendation}. Keep training intensity high.`
+
+    return {
+      score,
+      hrv,
+      sleepHrs,
+      status,
+      instruction,
+    }
+  }, [recoveryScores, sleepLogs, programs])
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-accent/25 bg-bg-surface p-5 md:p-6 shadow-sm">
@@ -31,7 +75,7 @@ export function CoachBriefing() {
           </div>
 
           <p className="text-text-secondary text-sm leading-relaxed">
-            Your readiness score is <strong className="text-primary font-semibold">88% (High)</strong> today. Heart Rate Variability is up 12% at <code className="font-mono text-xs text-primary">74ms</code>, and sleep quality was optimal. Today is a green light for your scheduled <strong className="text-primary font-semibold">Lower Body Power</strong> session. Keep training intensity high.
+            Your readiness score is <strong className="text-primary font-semibold">{insights.score}% ({insights.status})</strong> today. Heart Rate Variability is at <code className="font-mono text-xs text-primary">{insights.hrv}ms</code>, and sleep duration was <strong className="text-primary font-semibold">{insights.sleepHrs}h</strong>. {insights.instruction}
           </p>
 
           <div className="pt-2">

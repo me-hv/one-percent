@@ -1,49 +1,51 @@
 "use client"
 
-import { useState } from "react"
-import { CheckSquare, Check } from "lucide-react"
+import { useMemo } from "react"
+import { Check } from "lucide-react"
+import { useBodyStore } from "@/features/body/store/body.store"
+import { todayKey } from "@/lib/utils/date"
+import { toast } from "sonner"
 
 export function HabitsWidget() {
-  const [habits, setHabits] = useState([
-    { id: "h1", name: "10 min mobility flow", completed: true },
-    { id: "h2", name: "Drink 4L Water", completed: false, count: 3, target: 8, unit: "cups" },
-    { id: "h3", name: "Log all food intake", completed: true },
-    { id: "h4", name: "8h Sleep time", completed: false },
-  ])
+  const { habits, habitLogs, toggleHabitLog } = useBodyStore()
+  const todayStr = todayKey()
 
-  const toggleHabit = (id: string) => {
-    setHabits((prev) =>
-      prev.map((h) => {
-        if (h.id !== id) return h
-        if (h.count !== undefined && h.target !== undefined) {
-          const nextCount = h.count >= h.target ? 0 : h.count + 1
-          return {
-            ...h,
-            count: nextCount,
-            completed: nextCount >= h.target,
-          }
-        }
-        return { ...h, completed: !h.completed }
-      }),
-    )
+  // Map habits with their current today completion status
+  const currentHabits = useMemo(() => {
+    return habits.filter(h => !h.archived).map((h) => {
+      const log = habitLogs.find((l) => l.habitId === h.id && l.date === todayStr)
+      return {
+        id: h.id,
+        name: h.name,
+        completed: log ? log.completed : false,
+        count: log ? log.count : 0,
+        target: h.targetCount,
+        unit: h.unit,
+      }
+    })
+  }, [habits, habitLogs, todayStr])
+
+  const completedCount = currentHabits.filter((h) => h.completed).length
+
+  const handleToggle = (habitId: string, name: string, currentlyCompleted: boolean) => {
+    toggleHabitLog(habitId, todayStr)
+    toast.success(currentlyCompleted ? `Unchecked "${name}"` : `Completed "${name}"!`)
   }
-
-  const completedCount = habits.filter((h) => h.completed).length
 
   return (
     <div className="card space-y-4">
       <div className="card-header">
         <span className="card-label">Daily habits</span>
         <span className="font-mono text-xs text-text-secondary">
-          {completedCount}/{habits.length} done
+          {completedCount}/{currentHabits.length} done
         </span>
       </div>
 
       <div className="space-y-2">
-        {habits.map((h) => (
+        {currentHabits.map((h) => (
           <div
             key={h.id}
-            onClick={() => toggleHabit(h.id)}
+            onClick={() => handleToggle(h.id, h.name, h.completed)}
             className="flex items-center justify-between p-2.5 rounded border border-border-subtle bg-bg-base/30 hover:bg-bg-elevated/50 transition-colors duration-150 cursor-pointer group"
           >
             <div className="flex items-center gap-3">
@@ -66,13 +68,19 @@ export function HabitsWidget() {
               </span>
             </div>
 
-            {h.count !== undefined && (
+            {h.target > 1 && (
               <span className="font-mono text-[10px] text-text-placeholder border border-border-subtle px-1.5 py-0.5 rounded bg-bg-base">
-                {h.count}/{h.target} {h.unit}
+                {h.completed ? h.target : h.count}/{h.target} {h.unit}
               </span>
             )}
           </div>
         ))}
+
+        {currentHabits.length === 0 && (
+          <div className="text-center py-6 text-xs text-text-placeholder">
+            No active habits. Create habits in settings to start tracking.
+          </div>
+        )}
       </div>
     </div>
   )

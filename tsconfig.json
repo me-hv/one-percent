@@ -64,7 +64,7 @@
     ],
     // ─── Source Maps ──────────────────────────────────────────────
     "sourceMap": true,
-    "declarationMap": true,
+    "declarationMap": false,
     "allowJs": true,
     "skipLibCheck": true,
     "resolveJsonModule": true

@@ -1,8 +1,49 @@
 "use client"
 
+import { useMemo } from "react"
 import { Moon, TrendingUp } from "lucide-react"
+import { useBodyStore } from "@/features/body/store/body.store"
 
 export function RecoveryWidget() {
+  const { recoveryScores, sleepLogs } = useBodyStore()
+
+  const recoveryData = useMemo(() => {
+    const latestScore = recoveryScores[0]
+    const latestSleep = sleepLogs[0]
+
+    const score = latestScore?.score ?? 85
+    const hrv = latestScore?.hrv ?? 70
+    const restingHR = latestScore?.restingHR ?? 54
+
+    // format sleep duration
+    let sleepStr = "7h 30m"
+    if (latestSleep) {
+      const hrs = Math.floor(latestSleep.durationSeconds / 3600)
+      const mins = Math.round((latestSleep.durationSeconds % 3600) / 60)
+      sleepStr = `${hrs}h ${mins}m`
+    }
+
+    // calculate variation compared to previous
+    let changePct = 5
+    const prev = recoveryScores[1]?.score
+    if (prev != null) {
+      changePct = Math.round(((score - prev) / (prev || 1)) * 100)
+    }
+
+    let status = "Optimal"
+    if (score < 50) status = "Rest advised"
+    else if (score < 75) status = "Recovering"
+
+    return {
+      score,
+      hrv,
+      restingHR,
+      sleepStr,
+      changePct,
+      status,
+    }
+  }, [recoveryScores, sleepLogs])
+
   return (
     <div className="card space-y-4">
       <div className="card-header">
@@ -15,13 +56,13 @@ export function RecoveryWidget() {
         <div className="flex justify-between items-baseline">
           <div className="space-y-1">
             <span className="font-mono text-3xl font-bold text-accent tracking-tight">
-              88
+              {recoveryData.score}
             </span>
-            <span className="text-xs text-text-secondary ml-1.5">/ 100 (Optimal)</span>
+            <span className="text-xs text-text-secondary ml-1.5">/ 100 ({recoveryData.status})</span>
           </div>
           <div className="flex items-center gap-1 text-[10px] font-semibold text-accent bg-accent/10 border border-accent/20 px-1.5 py-0.5 rounded">
             <TrendingUp className="h-3 w-3" />
-            +12% vs. baseline
+            {recoveryData.changePct >= 0 ? `+${recoveryData.changePct}%` : `${recoveryData.changePct}%`} vs. baseline
           </div>
         </div>
 
@@ -32,7 +73,7 @@ export function RecoveryWidget() {
               HRV
             </span>
             <span className="font-mono text-sm font-semibold text-primary block mt-0.5">
-              74ms
+              {recoveryData.hrv}ms
             </span>
           </div>
           <div className="text-left">
@@ -40,7 +81,7 @@ export function RecoveryWidget() {
               Resting HR
             </span>
             <span className="font-mono text-sm font-semibold text-primary block mt-0.5">
-              52bpm
+              {recoveryData.restingHR}bpm
             </span>
           </div>
           <div className="text-left">
@@ -48,7 +89,7 @@ export function RecoveryWidget() {
               Asleep
             </span>
             <span className="font-mono text-sm font-semibold text-primary block mt-0.5">
-              7h 45m
+              {recoveryData.sleepStr}
             </span>
           </div>
         </div>
