@@ -287,6 +287,7 @@ STORAGE_EMULATOR_HOST=127.0.0.1:9199
 - [x] **Phase 7.1: Programs & Routines** — Template constructors, exercise library, multi-week planners, and JSON import/export.
 - [x] **Phase 7.2: Custom Exercise Builder** — Custom movement creation, search filtering, and exercise inspectors.
 - [x] **Phase 7.3: Progress Intelligence Platform** — Advanced analytics, body metrics, canvas photo compression, training calendar heatmaps, PR leaderboards, and deterministic smart insights.
+- [x] **Phase 7.4: Goals & Performance System** — Goal auto-sync engine, 0-100 Performance Score, Sunday Weekly & Monthly reviews, and GitHub-style monochrome milestone achievements.
 
 ---
 

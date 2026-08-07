@@ -5,6 +5,26 @@ All notable changes to the One Percent Fitness Operating System are documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-08-07 — Phase 7.4 Goals & Performance Release
+
+### Added
+- **Goals Engine & Automatic Data Sync**:
+  - Extended Goal data models (`lib/types/goals.types.ts`) with priorities (`high`, `medium`, `low`), categories (`strength`, `body_comp`, `consistency`, `nutrition`, `custom`), auto-sync keys, and milestone steps.
+  - Automatic Goal Sync Engine (`goals-sync.service.ts`) dynamically calculating `currentValue` & `progressPct` from live workout logs, body metrics, and habit records.
+  - Milestone callout banners (e.g. *"Only 5kg left to your Bench goal"*).
+  - Goals Store (`goals.store.ts`) with full offline persistence, search filtering, and CRUD.
+- **0-100 Performance Score Engine**:
+  - Deterministic algorithm (`performance.service.ts`) calculating 0-100 score across 7 weighted factors: Consistency (20%), Progressive Overload (20%), Frequency (15%), Goals (15%), Recovery (10%), Habits (10%), Session Quality (10%).
+  - `PerformanceScoreWidget` gauge card integrated into Dashboard with factor breakdown modal.
+- **Weekly & Monthly Review Generator**:
+  - `review.service.ts` generating automated Sunday Weekly Reviews and Monthly Progress Reviews.
+  - `WeeklyReviewModal` & `MonthlyReviewModal` detailing workouts, consistency %, volume deltas, bodyweight deltas, key lift progression, missed sessions, peak weeks, and overall score out of 100.
+- **GitHub-Style Professional Achievements**:
+  - Minimalist monochrome achievement system (`achievements.service.ts`) evaluating milestones across Sessions, Sets, Volume, PRs, Programs, and Consistency.
+  - `AchievementsGrid` component rendering clean GitHub-style milestone cards.
+- **Goals & Achievements Hub Page (`/goals`)**:
+  - Dedicated hub featuring category filters, status tabs, Create Goal modal, milestone callouts, and achievement grid.
+
 ## [0.9.0] - 2026-08-07 — Phase 7.3 Progress Intelligence Release
 
 ### Added
