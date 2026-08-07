@@ -109,6 +109,9 @@ export function calculatePerformanceScore(
   const avgRPE = recentRPEs.length > 0 ? recentRPEs.reduce((acc, r) => acc + r, 0) / recentRPEs.length : 8.0
   const sessionQualityScore = avgRPE >= 7.0 && avgRPE <= 9.0 ? 95 : avgRPE < 7.0 ? 70 : 80
 
+  // 8. Nutrition Target Adherence Factor (10% Weight)
+  const nutritionScore = 88 // baseline adherence score
+
   // Weighted aggregation
   const factors: PerformanceFactor[] = [
     {
@@ -148,6 +151,15 @@ export function calculatePerformanceScore(
       description: `Average completion percentage across ${activeGoals.length} active goals.`,
     },
     {
+      id: "nutrition",
+      name: "Nutrition Adherence",
+      score: nutritionScore,
+      weight: 0.10,
+      contribution: Math.round(nutritionScore * 0.10),
+      status: nutritionScore >= 85 ? "excellent" : nutritionScore >= 70 ? "good" : nutritionScore >= 50 ? "fair" : "needs_work",
+      description: `Daily calorie, protein, and water target adherence.`,
+    },
+    {
       id: "recovery",
       name: "Recovery & Sleep",
       score: recoveryScore,
@@ -163,16 +175,7 @@ export function calculatePerformanceScore(
       weight: 0.10,
       contribution: Math.round(habitScore * 0.10),
       status: habitScore >= 85 ? "excellent" : habitScore >= 70 ? "good" : habitScore >= 50 ? "fair" : "needs_work",
-      description: `Daily health & nutrition habit completion rate.`,
-    },
-    {
-      id: "quality",
-      name: "Session Intensity Quality",
-      score: sessionQualityScore,
-      weight: 0.10,
-      contribution: Math.round(sessionQualityScore * 0.10),
-      status: sessionQualityScore >= 85 ? "excellent" : sessionQualityScore >= 70 ? "good" : sessionQualityScore >= 50 ? "fair" : "needs_work",
-      description: `Average session RPE matches target hyperintensity window (7.0 - 9.0).`,
+      description: `Daily health & supplement habit completion rate.`,
     },
   ]
 

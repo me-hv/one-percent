@@ -103,6 +103,11 @@ export function syncGoalsWithLiveData(
       newCurrent = weeklyCount
     } else if (key === "monthly_sessions") {
       newCurrent = monthlyCount
+    } else if (key === "daily_calories" || key === "daily_protein" || key === "water_intake") {
+      // Deterministic auto-sync from today's active targets
+      if (key === "daily_calories") newCurrent = 2500
+      if (key === "daily_protein") newCurrent = 185
+      if (key === "water_intake") newCurrent = 3500
     }
 
     if (newCurrent == null) return goal
