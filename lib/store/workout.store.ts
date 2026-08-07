@@ -11,6 +11,7 @@ interface WorkoutState {
 
   // Actions
   startWorkout: (name: string, programId?: string, programDayId?: string) => void
+  loadProgramDay: (programId: string, day: any) => void
   addExercise: (exercise: Exercise) => void
   removeExercise: (sessionExerciseId: string) => void
   addSet: (sessionExerciseId: string, type?: WorkoutSet["type"]) => void
@@ -49,6 +50,63 @@ export const useWorkoutStore = create<WorkoutState>()(
           totalReps: 0,
           exerciseCount: 0,
           musclesWorked: [],
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        }
+
+        set({
+          activeSession: newSession,
+          timerSeconds: 0,
+          isTimerRunning: true,
+          isPaused: false,
+        })
+      },
+
+      loadProgramDay: (programId, day) => {
+        const sessionExercises: SessionExercise[] = (day.exercises || []).map((pe: any, idx: number) => {
+          const numSets = pe.targetSets || 3
+          const targetRepsNum = parseInt(pe.targetReps) || 10
+
+          const sets: WorkoutSet[] = Array.from({ length: numSets }, (_, sIdx) => ({
+            id: `set-${Math.random().toString(36).substring(2, 9)}`,
+            setNumber: sIdx + 1,
+            type: sIdx === 0 && pe.setTargets?.[0]?.type ? pe.setTargets[0].type : "normal",
+            reps: targetRepsNum,
+            weight: pe.targetWeight || 0,
+            rpe: pe.targetRPE,
+            completed: false,
+            isWarmup: false,
+            isDropset: false,
+          }))
+
+          return {
+            id: `se-${Math.random().toString(36).substring(2, 9)}`,
+            exerciseId: pe.exerciseId,
+            exercise: pe.exercise,
+            orderIndex: idx,
+            sets,
+            notes: pe.notes,
+            restSeconds: pe.restSeconds || 90,
+            supersetGroupId: pe.supersetGroupId,
+          }
+        })
+
+        const newSession: WorkoutSession = {
+          id: Math.random().toString(36).substring(2, 9),
+          userId: "",
+          name: day.name,
+          notes: day.notes,
+          programId,
+          programDayId: day.id,
+          exercises: sessionExercises,
+          status: "active",
+          startedAt: Timestamp.now(),
+          totalVolume: 0,
+          totalSets: 0,
+          totalReps: 0,
+          exerciseCount: sessionExercises.length,
+          musclesWorked: [],
+          estimatedCalories: day.estimatedCalories,
           createdAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
         }

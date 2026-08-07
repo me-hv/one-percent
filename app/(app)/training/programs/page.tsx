@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils/cn"
 import { toast } from "sonner"
 import type { TrainingProgram } from "@/lib/types/training.types"
 import { ProgramFormModal } from "@/features/training/components/ProgramFormModal"
+import { TemplateManagerModal } from "@/features/training/components/TemplateManagerModal"
 
 const PROGRAM_COLORS: Record<string, string> = {
   green:  "bg-green-500/15 border-green-500/30 text-green-400",
@@ -48,6 +49,7 @@ export default function ProgramsPage() {
   const [filter, setFilter] = useState<"all" | "active" | "archived">("all")
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showTemplateModal, setShowTemplateModal] = useState(false)
 
   const filteredPrograms = useMemo(() => {
     return programs.filter((p) => {
@@ -102,12 +104,20 @@ export default function ProgramsPage() {
             Build, organize and schedule your training programs.
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md bg-accent text-bg-base hover:bg-accent-hover font-bold text-xs transition-colors self-start sm:self-center"
-        >
-          <Plus className="h-3.5 w-3.5" /> New Program
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-center">
+          <button
+            onClick={() => setShowTemplateModal(true)}
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-md border border-border-subtle bg-bg-surface hover:bg-bg-elevated text-text-primary text-xs font-semibold transition-colors"
+          >
+            <BookOpen className="h-3.5 w-3.5 text-accent-cyan" /> Templates
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md bg-accent-gold text-bg-base hover:bg-accent-gold-hover font-bold text-xs transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" /> New Program
+          </button>
+        </div>
       </div>
 
       {/* Active Program Banner */}
@@ -334,6 +344,12 @@ export default function ProgramsPage() {
       <ProgramFormModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
+      />
+
+      {/* Template Manager Modal */}
+      <TemplateManagerModal
+        isOpen={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
       />
     </div>
   )

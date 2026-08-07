@@ -153,12 +153,21 @@ export interface TrainingProgram {
   updatedAt:      Timestamp
 }
 
+export type TemplateCategory =
+  | "Powerlifting"
+  | "Bodybuilding"
+  | "Push Pull Legs"
+  | "Upper Lower"
+  | "Full Body"
+  | "Custom"
+
 // ─── Template (saved workout blueprint) ──────────────────────────
 export interface WorkoutTemplate {
   id:          string
   userId:      string
   name:        string
   description?: string
+  category?:   TemplateCategory
   exercises:   ProgramExercise[]
   estimatedDurationMinutes?: number
   tags?:       string[]
@@ -182,6 +191,25 @@ export interface ProgramDay {
   orderIndex: number
   exercises:  ProgramExercise[]
   isRestDay:  boolean
+  notes?:     string
+  warmupNotes?: string
+  cooldownNotes?: string
+  estimatedDurationMinutes?: number
+  estimatedCalories?: number
+  targetRpe?: number
+  targetVolume?: number
+}
+
+export interface ProgramSetTarget {
+  id: string
+  setNumber: number
+  type: SetType
+  targetReps: string
+  targetWeight?: number
+  targetRPE?: number
+  restSeconds?: number
+  tempo?: string
+  notes?: string
 }
 
 export interface ProgramExercise {
@@ -194,7 +222,10 @@ export interface ProgramExercise {
   targetWeight?: number          // kg
   targetRPE?:   number
   restSeconds:  number
+  tempo?:       string
   notes?:       string
+  supersetGroupId?: string
+  setTargets?:  ProgramSetTarget[]
 }
 
 // ─── Personal Record ──────────────────────────────────────────────

@@ -110,23 +110,7 @@ export default function ProgramDetailPage({ params }: Props) {
       toast.error("A workout is already active. Finish or discard it first.")
       return
     }
-    startWorkout(day.name, program.id, day.id)
-    day.exercises.forEach((pe) => {
-      const ex = pe.exercise ?? findExerciseById(pe.exerciseId)
-      if (ex) {
-        useWorkoutStore.getState().addExercise(ex)
-        // Add remaining sets
-        const sess = useWorkoutStore.getState().activeSession
-        if (sess) {
-          const added = sess.exercises[sess.exercises.length - 1]
-          if (added) {
-            for (let i = 1; i < pe.targetSets; i++) {
-              useWorkoutStore.getState().addSet(added.id, "normal")
-            }
-          }
-        }
-      }
-    })
+    useWorkoutStore.getState().loadProgramDay(program.id, day)
     toast.success(`Started: ${day.name}`)
     router.push(ROUTES.training.log)
   }

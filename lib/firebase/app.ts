@@ -24,7 +24,12 @@ function getFirebaseApp(): FirebaseApp {
   if (getApps().length > 0) {
     return getApps()[0]!
   }
-  return initializeApp(firebaseConfig)
+  const app = initializeApp(firebaseConfig)
+  if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
+    console.log(`[Firebase] Initialized with Project ID: ${firebaseConfig.projectId}`)
+  }
+  return app
 }
 
 export const firebaseApp = getFirebaseApp()
+

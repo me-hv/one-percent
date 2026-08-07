@@ -48,14 +48,38 @@ export function WeeklySchedule({ program }: Props) {
     setDraggingDayId(null)
   }
 
+  const { copyWeek, clearWeek, duplicateDay, removeDay } = useProgramsStore()
+
   return (
     <div className="space-y-6">
-      <p className="text-xs text-text-secondary">
-        Drag and drop workout days onto the calendar to schedule your week.
-      </p>
+      {/* Schedule Controls Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-bg-base/30 p-3.5 rounded-xl border border-border-subtle/60">
+        <div>
+          <h4 className="text-xs font-bold text-text-primary uppercase tracking-wider font-mono">
+            Weekly Schedule Planner
+          </h4>
+          <p className="text-[11px] text-text-muted">
+            Drag and drop workout days onto weekdays, or use quick controls to plan.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => copyWeek(program.id)}
+            className="rounded-lg border border-border-subtle/80 bg-bg-surface px-2.5 py-1 text-xs font-semibold text-text-muted hover:text-text-primary hover:border-border-subtle transition-colors"
+          >
+            Duplicate Week
+          </button>
+          <button
+            onClick={() => clearWeek(program.id)}
+            className="rounded-lg border border-rose-500/20 bg-rose-500/5 px-2.5 py-1 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors"
+          >
+            Clear Week
+          </button>
+        </div>
+      </div>
 
       {/* Weekly grid */}
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
         {DAY_LABELS.map((label, dow) => {
           const scheduledDays = daysByDow[dow] ?? []
           const isOver = dragOverDow === dow
@@ -63,19 +87,27 @@ export function WeeklySchedule({ program }: Props) {
           return (
             <div
               key={dow}
-              onDragOver={(e) => { e.preventDefault(); setDragOverDow(dow) }}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragOverDow(dow)
+              }}
               onDragLeave={() => setDragOverDow(null)}
               onDrop={() => handleDropOnDow(dow)}
               className={cn(
-                "rounded-xl border min-h-[120px] p-2 flex flex-col gap-1.5 transition-colors",
+                "rounded-xl border min-h-[140px] p-2.5 flex flex-col gap-2 transition-all",
                 isOver
-                  ? "border-accent bg-accent/5"
-                  : "border-border-subtle bg-bg-surface"
+                  ? "border-accent-cyan bg-accent-cyan/10"
+                  : "border-border-subtle/80 bg-bg-surface/50 hover:bg-bg-surface"
               )}
             >
-              <span className="text-[9px] font-mono text-text-placeholder uppercase tracking-wider text-center block">
-                {label}
-              </span>
+              <div className="flex items-center justify-between border-b border-border-subtle/40 pb-1">
+                <span className="text-[10px] font-mono text-text-muted font-bold uppercase tracking-wider">
+                  {label}
+                </span>
+                <span className="text-[10px] font-mono text-text-placeholder">
+                  Day {dow + 1}
+                </span>
+              </div>
 
               {scheduledDays.map((day) => (
                 <div
@@ -83,25 +115,49 @@ export function WeeklySchedule({ program }: Props) {
                   draggable
                   onDragStart={() => handleDragStart(day.id)}
                   className={cn(
-                    "rounded-lg border px-1.5 py-1 cursor-grab active:cursor-grabbing transition-colors text-center",
+                    "group relative rounded-lg border p-2 cursor-grab active:cursor-grabbing transition-all space-y-1",
                     day.isRestDay
-                      ? "border-border-subtle bg-bg-elevated text-text-placeholder"
-                      : "border-accent/25 bg-accent/10 text-accent"
+                      ? "border-border-subtle/50 bg-bg-base/40 text-text-muted"
+                      : "border-accent-gold/30 bg-accent-gold/10 text-text-primary"
                   )}
                 >
-                  <div className="flex justify-center mb-0.5">
-                    {day.isRestDay ? <Moon className="h-3 w-3" /> : <Dumbbell className="h-3 w-3" />}
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {day.isRestDay ? (
+                        <Moon className="h-3.5 w-3.5 text-text-placeholder shrink-0" />
+                      ) : (
+                        <Dumbbell className="h-3.5 w-3.5 text-accent-gold shrink-0" />
+                      )}
+                      <span className="text-xs font-semibold truncate">{day.name}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => duplicateDay(program.id, day.id)}
+                        className="text-text-placeholder hover:text-text-primary"
+                        title="Duplicate Day"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
-                  <span className="text-[9px] font-medium line-clamp-2 leading-tight">{day.name}</span>
+
+                  {!day.isRestDay && (
+                    <div className="text-[10px] text-text-muted">
+                      {day.exercises?.length || 0} exercises
+                    </div>
+                  )}
                 </div>
               ))}
 
               {scheduledDays.length === 0 && (
-                <div className={cn(
-                  "flex-1 rounded-lg border-dashed border flex items-center justify-center text-[9px] text-text-placeholder transition-colors",
-                  isOver ? "border-accent text-accent" : "border-border-subtle"
-                )}>
-                  {isOver ? "Drop here" : "—"}
+                <div
+                  className={cn(
+                    "flex-1 rounded-lg border-dashed border flex items-center justify-center text-[10px] font-mono transition-colors",
+                    isOver ? "border-accent-cyan text-accent-cyan" : "border-border-subtle/40 text-text-placeholder"
+                  )}
+                >
+                  {isOver ? "Drop here" : "Rest Day"}
                 </div>
               )}
             </div>
@@ -112,16 +168,19 @@ export function WeeklySchedule({ program }: Props) {
       {/* Unscheduled days */}
       {unscheduled.length > 0 && (
         <div
-          onDragOver={(e) => { e.preventDefault(); setDragOverDow(-1) }}
+          onDragOver={(e) => {
+            e.preventDefault()
+            setDragOverDow(-1)
+          }}
           onDragLeave={() => setDragOverDow(null)}
           onDrop={handleDropOnUnscheduled}
           className={cn(
-            "rounded-xl border p-4 space-y-2 transition-colors",
-            dragOverDow === -1 ? "border-accent bg-accent/5" : "border-border-subtle bg-bg-surface"
+            "rounded-xl border p-4 space-y-3 transition-colors",
+            dragOverDow === -1 ? "border-accent-cyan bg-accent-cyan/10" : "border-border-subtle/60 bg-bg-surface/30"
           )}
         >
-          <span className="text-[10px] font-mono text-text-placeholder uppercase tracking-wider">
-            Unscheduled Days
+          <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider font-bold">
+            Unscheduled Workout Days ({unscheduled.length})
           </span>
           <div className="flex flex-wrap gap-2">
             {unscheduled.map((day) => (
@@ -130,19 +189,23 @@ export function WeeklySchedule({ program }: Props) {
                 draggable
                 onDragStart={() => handleDragStart(day.id)}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border cursor-grab active:cursor-grabbing text-xs font-medium",
+                  "flex items-center gap-2 px-3 py-2 rounded-lg border cursor-grab active:cursor-grabbing text-xs font-semibold transition-all",
                   day.isRestDay
-                    ? "border-border-subtle bg-bg-elevated text-text-secondary"
-                    : "border-border-default bg-bg-elevated text-primary"
+                    ? "border-border-subtle bg-bg-base/40 text-text-muted"
+                    : "border-accent-gold/40 bg-accent-gold/10 text-text-primary hover:border-accent-gold"
                 )}
               >
-                {day.isRestDay ? <Moon className="h-3 w-3" /> : <Dumbbell className="h-3 w-3" />}
+                {day.isRestDay ? (
+                  <Moon className="h-3.5 w-3.5 text-text-placeholder" />
+                ) : (
+                  <Dumbbell className="h-3.5 w-3.5 text-accent-gold" />
+                )}
                 {day.name}
               </div>
             ))}
           </div>
           {dragOverDow === -1 && (
-            <p className="text-[10px] text-accent font-mono">Drop here to unschedule</p>
+            <p className="text-[10px] text-accent-cyan font-mono">Drop here to unschedule</p>
           )}
         </div>
       )}

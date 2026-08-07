@@ -80,5 +80,43 @@ export const trainingRepository = {
     const q = query(prRef, where("exerciseId", "==", exerciseId))
     const snap = await getDocs(q)
     return snap.docs.map((d) => d.data() as PersonalRecord)
+  },
+
+  /**
+   * Saves or updates a program in Firestore
+   */
+  async saveProgram(userId: string, program: any): Promise<void> {
+    if (!userId) return
+    const programRef = doc(db, "users", userId, "programs", program.id)
+    await setDoc(programRef, { ...program, userId, updatedAt: Timestamp.now() }, { merge: true })
+  },
+
+  /**
+   * Fetches user programs from Firestore
+   */
+  async getUserPrograms(userId: string): Promise<any[]> {
+    if (!userId) return []
+    const progRef = collection(db, "users", userId, "programs")
+    const snap = await getDocs(progRef)
+    return snap.docs.map((d) => d.data())
+  },
+
+  /**
+   * Saves or updates a template in Firestore
+   */
+  async saveTemplate(userId: string, template: any): Promise<void> {
+    if (!userId) return
+    const templateRef = doc(db, "users", userId, "templates", template.id)
+    await setDoc(templateRef, { ...template, userId, updatedAt: Timestamp.now() }, { merge: true })
+  },
+
+  /**
+   * Fetches user templates from Firestore
+   */
+  async getUserTemplates(userId: string): Promise<any[]> {
+    if (!userId) return []
+    const tmplRef = collection(db, "users", userId, "templates")
+    const snap = await getDocs(tmplRef)
+    return snap.docs.map((d) => d.data())
   }
 }

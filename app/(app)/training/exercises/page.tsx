@@ -77,7 +77,7 @@ const MUSCLE_COLORS: Record<string, string> = {
 }
 
 export default function ExercisesPage() {
-  const { favoriteExerciseIds, toggleFavoriteExercise } = useProgramsStore()
+  const { customExercises, favoriteExerciseIds, toggleFavoriteExercise } = useProgramsStore()
 
   const [query, setQuery] = useState("")
   const [muscle, setMuscle] = useState("all")
@@ -87,11 +87,21 @@ export default function ExercisesPage() {
   const [showFilters, setShowFilters] = useState(false)
 
   const results = useMemo(() => {
-    let ex = query ? searchExercises(query) : EXERCISE_LIBRARY
+    const combined = [...EXERCISE_LIBRARY, ...customExercises]
+    let ex = combined
+    if (query) {
+      const q = query.toLowerCase()
+      ex = ex.filter(
+        (item) =>
+          item.name.toLowerCase().includes(q) ||
+          item.muscleGroups.some((m: string) => m.toLowerCase().includes(q)) ||
+          item.aliases?.some((a: string) => a.toLowerCase().includes(q))
+      )
+    }
     ex = filterExercises(ex, { muscle, equipment: category, difficulty })
     if (showFavoritesOnly) ex = ex.filter((e) => favoriteExerciseIds.includes(e.id))
     return ex
-  }, [query, muscle, category, difficulty, showFavoritesOnly, favoriteExerciseIds])
+  }, [query, muscle, category, difficulty, showFavoritesOnly, favoriteExerciseIds, customExercises])
 
   const activeFilterCount = [
     muscle !== "all",

@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
 import type { Timestamp } from "firebase/firestore"
-import type { TrainingProgram, ProgramDay, ProgramExercise, WorkoutTemplate } from "@/lib/types/training.types"
+import type { TrainingProgram, ProgramDay, ProgramExercise, WorkoutTemplate, Exercise } from "@/lib/types/training.types"
 
 // ─── Helpers ──────────────────────────────────────────────────────
 function genId(prefix = "id"): string {
@@ -25,6 +25,7 @@ function nowTs(): Timestamp {
 interface ProgramsState {
   programs: TrainingProgram[]
   templates: WorkoutTemplate[]
+  customExercises: Exercise[]
   favoriteExerciseIds: string[]
   favoriteProgramIds: string[]
 
@@ -36,18 +37,30 @@ interface ProgramsState {
   archiveProgram: (id: string) => void
   restoreProgram: (id: string) => void
   setActiveProgram: (id: string) => void
+  importProgram: (programData: TrainingProgram) => TrainingProgram
 
-  // Day management
+  // Day & Schedule management
   addDay: (programId: string, day: Omit<ProgramDay, "id" | "orderIndex">) => void
   updateDay: (programId: string, dayId: string, updates: Partial<ProgramDay>) => void
   removeDay: (programId: string, dayId: string) => void
   reorderDays: (programId: string, startIndex: number, endIndex: number) => void
+  duplicateDay: (programId: string, dayId: string) => void
+  copyWeek: (programId: string) => void
+  clearWeek: (programId: string) => void
+  assignDayToWeekday: (programId: string, dayId: string, weekdayIndex: number | undefined) => void
 
   // Exercise management within a day
   addExerciseToDay: (programId: string, dayId: string, exercise: Omit<ProgramExercise, "id" | "orderIndex">) => void
   updateExerciseInDay: (programId: string, dayId: string, exerciseId: string, updates: Partial<ProgramExercise>) => void
   removeExerciseFromDay: (programId: string, dayId: string, exerciseId: string) => void
   reorderExercisesInDay: (programId: string, dayId: string, startIndex: number, endIndex: number) => void
+  replaceExerciseInDay: (programId: string, dayId: string, exerciseId: string, newExerciseId: string) => void
+  duplicateExerciseInDay: (programId: string, dayId: string, exerciseId: string) => void
+
+  // Custom exercises CRUD
+  addCustomExercise: (data: Omit<Exercise, "id" | "isCustom">) => Exercise
+  updateCustomExercise: (id: string, updates: Partial<Exercise>) => void
+  deleteCustomExercise: (id: string) => void
 
   // Templates CRUD
   createTemplate: (data: Omit<WorkoutTemplate, "id" | "userId" | "createdAt" | "updatedAt">) => WorkoutTemplate
@@ -55,6 +68,7 @@ interface ProgramsState {
   deleteTemplate: (id: string) => void
   duplicateTemplate: (id: string) => WorkoutTemplate | null
   toggleTemplateFavorite: (id: string) => void
+  importTemplate: (templateData: WorkoutTemplate) => WorkoutTemplate
 
   // Favorites
   toggleFavoriteExercise: (exerciseId: string) => void
@@ -69,16 +83,16 @@ export const useProgramsStore = create<ProgramsState>()(
     (set, get) => ({
       programs: [],
       templates: [],
+      customExercises: [],
       favoriteExerciseIds: [],
       favoriteProgramIds: [],
 
       // ─── Programs ──────────────────────────────────────────────
       createProgram: (data) => {
-        // Deactivate all others if new is active
         const newProgram: TrainingProgram = {
           ...data,
           id: genId("prog"),
-          userId: "", // Populated by service layer with real uid
+          userId: "",
           createdAt: nowTs(),
           updatedAt: nowTs(),
         }
@@ -118,7 +132,6 @@ export const useProgramsStore = create<ProgramsState>()(
           archivedAt: undefined,
           createdAt: nowTs(),
           updatedAt: nowTs(),
-          // Deep-clone days and exercises with new IDs
           days: src.days.map((day) => ({
             ...day,
             id: genId("day"),
@@ -155,6 +168,22 @@ export const useProgramsStore = create<ProgramsState>()(
             updatedAt: p.id === id ? nowTs() : p.updatedAt,
           })),
         }))
+      },
+
+      importProgram: (programData) => {
+        const imported: TrainingProgram = {
+          ...programData,
+          id: genId("prog"),
+          createdAt: nowTs(),
+          updatedAt: nowTs(),
+          days: (programData.days || []).map((d) => ({
+            ...d,
+            id: genId("day"),
+            exercises: (d.exercises || []).map((e) => ({ ...e, id: genId("pex") })),
+          })),
+        }
+        set((state) => ({ programs: [...state.programs, imported] }))
+        return imported
       },
 
       // ─── Days ─────────────────────────────────────────────────
@@ -203,6 +232,60 @@ export const useProgramsStore = create<ProgramsState>()(
             const [removed] = days.splice(startIndex, 1)
             if (removed) days.splice(endIndex, 0, removed)
             return { ...p, days: days.map((d, i) => ({ ...d, orderIndex: i })), updatedAt: nowTs() }
+          }),
+        }))
+      },
+
+      duplicateDay: (programId, dayId) => {
+        set((state) => ({
+          programs: state.programs.map((p) => {
+            if (p.id !== programId) return p
+            const targetDay = p.days.find((d) => d.id === dayId)
+            if (!targetDay) return p
+            const cloneDay: ProgramDay = {
+              ...targetDay,
+              id: genId("day"),
+              name: `${targetDay.name} (Copy)`,
+              orderIndex: p.days.length,
+              exercises: targetDay.exercises.map((e) => ({ ...e, id: genId("pex") })),
+            }
+            return { ...p, days: [...p.days, cloneDay], updatedAt: nowTs() }
+          }),
+        }))
+      },
+
+      copyWeek: (programId) => {
+        set((state) => ({
+          programs: state.programs.map((p) => {
+            if (p.id !== programId) return p
+            const duplicatedDays = p.days.map((d, i) => ({
+              ...d,
+              id: genId("day"),
+              orderIndex: p.days.length + i,
+              exercises: d.exercises.map((e) => ({ ...e, id: genId("pex") })),
+            }))
+            return { ...p, days: [...p.days, ...duplicatedDays], updatedAt: nowTs() }
+          }),
+        }))
+      },
+
+      clearWeek: (programId) => {
+        set((state) => ({
+          programs: state.programs.map((p) =>
+            p.id === programId ? { ...p, days: [], updatedAt: nowTs() } : p
+          ),
+        }))
+      },
+
+      assignDayToWeekday: (programId, dayId, weekdayIndex) => {
+        set((state) => ({
+          programs: state.programs.map((p) => {
+            if (p.id !== programId) return p
+            return {
+              ...p,
+              days: p.days.map((d) => (d.id === dayId ? { ...d, dayOfWeek: weekdayIndex } : d)),
+              updatedAt: nowTs(),
+            }
           }),
         }))
       },
@@ -286,6 +369,75 @@ export const useProgramsStore = create<ProgramsState>()(
         }))
       },
 
+      replaceExerciseInDay: (programId, dayId, exerciseId, newExerciseId) => {
+        set((state) => ({
+          programs: state.programs.map((p) => {
+            if (p.id !== programId) return p
+            return {
+              ...p,
+              days: p.days.map((d) => {
+                if (d.id !== dayId) return d
+                return {
+                  ...d,
+                  exercises: d.exercises.map((e) =>
+                    e.id === exerciseId ? { ...e, exerciseId: newExerciseId, exercise: undefined } : e
+                  ),
+                }
+              }),
+              updatedAt: nowTs(),
+            }
+          }),
+        }))
+      },
+
+      duplicateExerciseInDay: (programId, dayId, exerciseId) => {
+        set((state) => ({
+          programs: state.programs.map((p) => {
+            if (p.id !== programId) return p
+            return {
+              ...p,
+              days: p.days.map((d) => {
+                if (d.id !== dayId) return d
+                const src = d.exercises.find((e) => e.id === exerciseId)
+                if (!src) return d
+                const clone: ProgramExercise = {
+                  ...src,
+                  id: genId("pex"),
+                  orderIndex: d.exercises.length,
+                }
+                return { ...d, exercises: [...d.exercises, clone] }
+              }),
+              updatedAt: nowTs(),
+            }
+          }),
+        }))
+      },
+
+      // ─── Custom Exercises ──────────────────────────────────────
+      addCustomExercise: (data) => {
+        const customEx: Exercise = {
+          ...data,
+          id: genId("ex-custom"),
+          isCustom: true,
+        }
+        set((state) => ({ customExercises: [...state.customExercises, customEx] }))
+        return customEx
+      },
+
+      updateCustomExercise: (id, updates) => {
+        set((state) => ({
+          customExercises: state.customExercises.map((e) =>
+            e.id === id ? { ...e, ...updates } : e
+          ),
+        }))
+      },
+
+      deleteCustomExercise: (id) => {
+        set((state) => ({
+          customExercises: state.customExercises.filter((e) => e.id !== id),
+        }))
+      },
+
       // ─── Templates ────────────────────────────────────────────
       createTemplate: (data) => {
         const newTemplate: WorkoutTemplate = {
@@ -333,6 +485,18 @@ export const useProgramsStore = create<ProgramsState>()(
             t.id === id ? { ...t, isFavorite: !t.isFavorite } : t
           ),
         }))
+      },
+
+      importTemplate: (templateData) => {
+        const imported: WorkoutTemplate = {
+          ...templateData,
+          id: genId("tmpl"),
+          createdAt: nowTs(),
+          updatedAt: nowTs(),
+          exercises: (templateData.exercises || []).map((e) => ({ ...e, id: genId("pex") })),
+        }
+        set((state) => ({ templates: [...state.templates, imported] }))
+        return imported
       },
 
       // ─── Favorites ────────────────────────────────────────────

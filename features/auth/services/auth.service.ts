@@ -14,7 +14,8 @@ function setSessionCookie(token: string) {
   if (typeof document !== "undefined") {
     // Session cookie persists for 7 days
     const maxAge = 7 * 24 * 60 * 60
-    document.cookie = `__session=${token}; path=/; max-age=${maxAge}; SameSite=Lax; Secure`
+    const isHttps = typeof window !== "undefined" && window.location.protocol === "https:"
+    document.cookie = `__session=${token}; path=/; max-age=${maxAge}; SameSite=Lax${isHttps ? "; Secure" : ""}`
   }
 }
 

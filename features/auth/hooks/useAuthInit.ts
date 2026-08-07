@@ -20,6 +20,11 @@ export function useAuthInit() {
           if (user) {
             setUser(user)
 
+            // Refresh session cookie for middleware
+            const token = await user.getIdToken()
+            const isHttps = typeof window !== "undefined" && window.location.protocol === "https:"
+            document.cookie = `__session=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax${isHttps ? "; Secure" : ""}`
+
             // ─── Fetch Profile and Preferences from Firestore ──────────────
             const profileRef = doc(db, "users", user.uid)
             const prefsRef = doc(db, "preferences", user.uid)
