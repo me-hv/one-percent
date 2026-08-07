@@ -5,6 +5,7 @@ import { NutritionWidget } from "@/features/dashboard/components/NutritionWidget
 import { RecoveryWidget } from "@/features/dashboard/components/RecoveryWidget"
 import { HabitsWidget } from "@/features/dashboard/components/HabitsWidget"
 import { GoalsWidget } from "@/features/dashboard/components/GoalsWidget"
+import { InsightsWidget } from "@/features/dashboard/components/InsightsWidget"
 
 export const metadata = {
   title: "Dashboard",
@@ -19,6 +20,9 @@ export default function DashboardPage() {
 
       {/* ─── Grid Dashboard Layout ────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {/* Progress Intelligence Smart Insights & Recent PRs */}
+        <InsightsWidget />
+
         {/* Weekly Training Widget */}
         <TrainingWidget />
 

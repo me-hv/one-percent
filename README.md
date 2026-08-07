@@ -280,11 +280,13 @@ STORAGE_EMULATOR_HOST=127.0.0.1:9199
 
 - [x] **Phase 1: Vision & Philosophy Definition** — Core methodology, user personas, and flow architectures.
 - [x] **Phase 2: Design System & Tokens** — Implementation of Tailwind CSS v4, dark/light theme systems, and core layout.
-- [x] **Phase 3: Technical Architecture** — Firebase Client & Admin SDK setup, local emulator integrations, and environment pipelines.
-- [/] **Phase 4: Workout Engine** — Live session tracking, state retention, offline-first syncing, and rest pacing. *(In Progress)*
-- [ ] **Phase 5: Programs & Routines** — Template constructors, multi-week progressions, and template sharing database.
-- [ ] **Phase 6: Progress & Analytics** — Advanced charts, strength profiles, biometric logs, and CSV/JSON export-import.
-- [ ] **Phase 7: AI Coach Integration** — Gemini LLM integration for personalized workouts, feedback, and fatigue modeling.
+- [x] **Phase 3: Product Architecture & UX Blueprint** — Information architecture, layout hierarchy, and user journeys.
+- [x] **Phase 4: Technical Architecture** — Firebase Client & Admin SDK setup, local emulator integrations, and repository layer.
+- [x] **Phase 5: Project Foundation** — Clean architecture setup, authentication, and core application layout.
+- [x] **Phase 6: Workout Engine** — Live session tracking, set execution, keyboard shortcuts, offline state retention, and rest timer.
+- [x] **Phase 7.1: Programs & Routines** — Template constructors, exercise library, multi-week planners, and JSON import/export.
+- [x] **Phase 7.2: Custom Exercise Builder** — Custom movement creation, search filtering, and exercise inspectors.
+- [x] **Phase 7.3: Progress Intelligence Platform** — Advanced analytics, body metrics, canvas photo compression, training calendar heatmaps, PR leaderboards, and deterministic smart insights.
 
 ---
 

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { useBodyStore } from "@/features/body/store/body.store"
+import { compressImage } from "@/features/body/utils/image.utils"
 import { formatDateShort, formatDateCompact, todayKey, formatDateKey, subDays } from "@/lib/utils/date"
 import type { WeightLog, ProgressPhoto, BodyMeasurements, ProgressPhotoPose } from "@/lib/types/body.types"
 import { toast } from "sonner"
@@ -213,25 +214,19 @@ export default function BodyPage() {
     setMeasCalves("")
   }
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Limit to 4MB for localStorage base64 safety
-    if (file.size > 4 * 1024 * 1024) {
-      toast.error("Photo exceeds 4MB limit. Please compress first.")
-      return
+    try {
+      toast.loading("Compressing and processing photo...", { id: "photo-upload" })
+      const compressedDataUrl = await compressImage(file, { maxWidth: 1200, maxHeight: 1600, quality: 0.75 })
+      addProgressPhoto(compressedDataUrl, photoPose, photoNotes.trim())
+      toast.success("Progress photo uploaded & compressed!", { id: "photo-upload" })
+      setPhotoNotes("")
+    } catch (err) {
+      toast.error("Failed to process photo", { id: "photo-upload" })
     }
-
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        addProgressPhoto(reader.result, photoPose, photoNotes.trim())
-        toast.success("Progress photo added")
-        setPhotoNotes("")
-      }
-    }
-    reader.readAsDataURL(file)
   }
 
   // ─── Comparative Photos Selection ───────────────────────────────
