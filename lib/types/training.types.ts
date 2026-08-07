@@ -151,6 +151,7 @@ export interface TrainingProgram {
   archivedAt?:    Timestamp
   createdAt:      Timestamp
   updatedAt:      Timestamp
+  schemaVersion?: number
 }
 
 export type TemplateCategory =
@@ -174,6 +175,7 @@ export interface WorkoutTemplate {
   isFavorite?: boolean
   createdAt:   Timestamp
   updatedAt:   Timestamp
+  schemaVersion?: number
 }
 
 export type ProgramFocus =
@@ -240,6 +242,7 @@ export interface PersonalRecord {
   sessionId?:   string
   achievedAt:   Timestamp
   createdAt:    Timestamp
+  schemaVersion?: number
 }
 
 export type PRType =

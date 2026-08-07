@@ -9,6 +9,7 @@ export interface WeightLog {
   date:        string           // "YYYY-MM-DD"
   notes?:      string
   createdAt:   Timestamp
+  schemaVersion?: number
 }
 
 // ─── Body Measurements ────────────────────────────────────────────
@@ -40,6 +41,7 @@ export interface BodyMeasurements {
   notes?:      string
   createdAt:   Timestamp
   updatedAt:   Timestamp
+  schemaVersion?: number
 }
 
 // ─── Progress Photo ───────────────────────────────────────────────

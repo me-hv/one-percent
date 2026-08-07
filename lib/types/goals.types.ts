@@ -80,6 +80,7 @@ export interface Goal {
   completedAt?: Timestamp
   createdAt:    Timestamp
   updatedAt:    Timestamp
+  schemaVersion?: number
 }
 
 export interface GoalProgressLog {

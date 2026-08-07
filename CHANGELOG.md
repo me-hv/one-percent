@@ -5,6 +5,23 @@ All notable changes to the One Percent Fitness Operating System are documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-08-07 — Phase 7.4.5 Data Integrity, Sync & Production Hardening Release
+
+### Added
+- **Data Integrity Audit & Schema Versioning**:
+  - `lib/constants/VERSION.ts` establishing `CURRENT_SCHEMA_VERSION = 1`.
+  - `lib/utils/migration.utils.ts` providing store migration helpers (`migrateStoreState`, `sanitizeEntityList`).
+  - Added `schemaVersion?: number` metadata field to `Goal`, `WeightLog`, `BodyMeasurements`, `ProgressPhoto`, `TrainingProgram`, `WorkoutTemplate`, `Exercise`, and `PersonalRecord` interfaces.
+- **Offline Sync Queue & Backoff Engine**:
+  - `lib/services/sync-queue.service.ts` featuring idempotent mutation deduplication, exponential backoff retry policy (1s to 30s delay, max 5 attempts), Last-Write-Wins (LWW) conflict resolution, and automatic online recovery listeners.
+- **Backup & Disaster Recovery Engine**:
+  - `lib/services/backup.service.ts` for exporting complete single-file application JSON snapshots with versioning, checksum validation, and schema checking.
+  - `components/settings/DataBackupModal.tsx` allowing single-click JSON backup export and merge/full replacement restore.
+- **Security Hardening**:
+  - Hardened `firestore.rules` and `storage.rules` enforcing strict authenticated user data isolation (`request.auth.uid == userId`).
+- **Architectural Documentation**:
+  - Created [`ARCHITECTURE.md`](file:///g:/Harry/02.%20Development/one-percent/ARCHITECTURE.md), [`DATA_FLOW.md`](file:///g:/Harry/02.%20Development/one-percent/DATA_FLOW.md), and [`OFFLINE_SYNC.md`](file:///g:/Harry/02.%20Development/one-percent/OFFLINE_SYNC.md).
+
 ## [1.0.0] - 2026-08-07 — Phase 7.4 Goals & Performance Release
 
 ### Added

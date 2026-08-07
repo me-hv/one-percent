@@ -6,13 +6,16 @@ import { useGoalsStore } from "@/features/goals/store/goals.store"
 import { useBodyStore } from "@/features/body/store/body.store"
 import { useWorkoutHistory } from "@/features/training/hooks/useWorkoutQueries"
 import { useAuthStore } from "@/lib/store/auth.store"
+import dynamic from "next/dynamic"
 import { GoalCard } from "@/features/goals/components/GoalCard"
-import { CreateGoalModal } from "@/features/goals/components/CreateGoalModal"
 import { AchievementsGrid } from "@/features/achievements/components/AchievementsGrid"
-import { WeeklyReviewModal } from "@/features/performance/components/WeeklyReviewModal"
-import { MonthlyReviewModal } from "@/features/performance/components/MonthlyReviewModal"
 import type { GoalCategory, GoalStatus } from "@/lib/types/goals.types"
 import { cn } from "@/lib/utils/cn"
+
+const CreateGoalModal = dynamic(() => import("@/features/goals/components/CreateGoalModal").then((m) => m.CreateGoalModal), { ssr: false })
+const WeeklyReviewModal = dynamic(() => import("@/features/performance/components/WeeklyReviewModal").then((m) => m.WeeklyReviewModal), { ssr: false })
+const MonthlyReviewModal = dynamic(() => import("@/features/performance/components/MonthlyReviewModal").then((m) => m.MonthlyReviewModal), { ssr: false })
+const DataBackupModal = dynamic(() => import("@/components/settings/DataBackupModal").then((m) => m.DataBackupModal), { ssr: false })
 
 const CATEGORY_FILTERS = [
   { id: "all", label: "All Goals" },
@@ -42,6 +45,7 @@ export default function GoalsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showWeeklyModal, setShowWeeklyModal] = useState(false)
   const [showMonthlyModal, setShowMonthlyModal] = useState(false)
+  const [showBackupModal, setShowBackupModal] = useState(false)
 
   // Auto-sync goals with live metrics on mount
   useEffect(() => {
@@ -80,6 +84,12 @@ export default function GoalsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={() => setShowBackupModal(true)}
+            className="h-9 px-3 rounded border border-border-default bg-bg-surface text-primary hover:border-accent text-xs font-mono font-semibold transition-colors flex items-center gap-1.5"
+          >
+            <Shield className="h-3.5 w-3.5 text-accent" /> Backup & Restore
+          </button>
           <button
             onClick={() => setShowWeeklyModal(true)}
             className="h-9 px-3 rounded border border-border-default bg-bg-surface text-primary hover:border-accent text-xs font-mono font-semibold transition-colors flex items-center gap-1.5"
@@ -211,6 +221,7 @@ export default function GoalsPage() {
         weightLogs={weightLogs}
         goals={goals}
       />
+      <DataBackupModal isOpen={showBackupModal} onClose={() => setShowBackupModal(false)} />
     </div>
   )
 }

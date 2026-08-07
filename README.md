@@ -288,6 +288,7 @@ STORAGE_EMULATOR_HOST=127.0.0.1:9199
 - [x] **Phase 7.2: Custom Exercise Builder** — Custom movement creation, search filtering, and exercise inspectors.
 - [x] **Phase 7.3: Progress Intelligence Platform** — Advanced analytics, body metrics, canvas photo compression, training calendar heatmaps, PR leaderboards, and deterministic smart insights.
 - [x] **Phase 7.4: Goals & Performance System** — Goal auto-sync engine, 0-100 Performance Score, Sunday Weekly & Monthly reviews, and GitHub-style monochrome milestone achievements.
+- [x] **Phase 7.4.5: Data Integrity, Sync & Production Hardening** — Schema versioning, exponential backoff offline sync queue, JSON backup & disaster recovery, performance optimization, firestore/storage security rules hardening, and architectural documentation (`ARCHITECTURE.md`, `DATA_FLOW.md`, `OFFLINE_SYNC.md`).
 
 ---
 
