@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "next dev --turbopack",
-    "emulator": "firebase emulators:start --project=your-project-id",
+    "emulator": "firebase emulators:start",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

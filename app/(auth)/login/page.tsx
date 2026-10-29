@@ -3,11 +3,12 @@
 import { useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { getFirebaseAuthErrorMessage } from "@/features/auth/utils/auth-errors"
 import { authService } from "@/features/auth/services/auth.service"
 import { useAuthStore } from "@/lib/store/auth.store"
 import { ROUTES } from "@/lib/constants/ROUTES"
 import { toast } from "sonner"
-import { ArrowRight, Loader2, Sparkles } from "lucide-react"
+import { ArrowRight, Loader2, Sparkles, AlertCircle } from "lucide-react"
 
 function LoginForm() {
   const router = useRouter()
@@ -17,11 +18,13 @@ function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
 
   const { setUser, setProfile, setPreferences } = useAuthStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError(null)
     if (!email || !password) {
       toast.error("Please fill in all fields")
       return
@@ -38,7 +41,9 @@ function LoginForm() {
       router.push(redirectPath)
     } catch (err: any) {
       console.error(err)
-      toast.error(err.message || "Invalid email or password")
+      const message = getFirebaseAuthErrorMessage(err)
+      setFormError(message)
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -57,6 +62,13 @@ function LoginForm() {
       </div>
 
       {/* ─── Form ──────────────────────────────────────────────────── */}
+      {formError && (
+        <div className="p-3 text-xs rounded-md bg-destructive/10 border border-destructive/20 text-destructive flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span className="leading-relaxed">{formError}</span>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1">
           <label

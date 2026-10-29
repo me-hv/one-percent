@@ -27,7 +27,7 @@ function getFirestoreInstance(): Firestore {
 
   // ─── Emulator Configuration ────────────────────────────────────
   if (env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR && typeof window !== "undefined") {
-    connectFirestoreEmulator(db, "localhost", 8080)
+    connectFirestoreEmulator(db, "127.0.0.1", 8080)
   }
 
   // ─── Offline Persistence ───────────────────────────────────────
