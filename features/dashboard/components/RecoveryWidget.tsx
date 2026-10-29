@@ -1,38 +1,43 @@
 "use client"
 
 import { useMemo } from "react"
-import { Moon, TrendingUp } from "lucide-react"
-import { useBodyStore } from "@/features/body/store/body.store"
+import Link from "next/link"
+import { Moon, TrendingUp, ChevronRight } from "lucide-react"
+import { useRecoveryStore } from "@/features/recovery/store/recovery.store"
+import { calculateReadinessScore } from "@/features/recovery/services/readiness.service"
+import { ROUTES } from "@/lib/constants/ROUTES"
 
 export function RecoveryWidget() {
-  const { recoveryScores, sleepLogs } = useBodyStore()
+  const { entries, config } = useRecoveryStore()
 
   const recoveryData = useMemo(() => {
-    const latestScore = recoveryScores[0]
-    const latestSleep = sleepLogs[0]
+    const latestEntry = entries[0]
+    const prevEntry = entries[1]
 
-    const score = latestScore?.score ?? 85
-    const hrv = latestScore?.hrv ?? 70
-    const restingHR = latestScore?.restingHR ?? 54
+    const latestResult = calculateReadinessScore(latestEntry, config)
+    const prevResult = calculateReadinessScore(prevEntry, config)
 
-    // format sleep duration
+    const score = latestResult.score ?? 85
+    const prevScore = prevResult.score ?? 80
+
+    const hrv = latestEntry?.hrv ?? 70
+    const restingHR = latestEntry?.restingHR ?? 54
+
+    // Format sleep duration
     let sleepStr = "7h 30m"
-    if (latestSleep) {
-      const hrs = Math.floor(latestSleep.durationSeconds / 3600)
-      const mins = Math.round((latestSleep.durationSeconds % 3600) / 60)
+    if (latestEntry?.sleepDurationMinutes) {
+      const hrs = Math.floor(latestEntry.sleepDurationMinutes / 60)
+      const mins = latestEntry.sleepDurationMinutes % 60
       sleepStr = `${hrs}h ${mins}m`
     }
 
-    // calculate variation compared to previous
-    let changePct = 5
-    const prev = recoveryScores[1]?.score
-    if (prev != null) {
-      changePct = Math.round(((score - prev) / (prev || 1)) * 100)
+    // Calculate variation compared to previous check-in
+    let changePct = 0
+    if (prevScore > 0) {
+      changePct = Math.round(((score - prevScore) / prevScore) * 100)
     }
 
-    let status = "Optimal"
-    if (score < 50) status = "Rest advised"
-    else if (score < 75) status = "Recovering"
+    const status = latestResult.category.replace(" Readiness", "")
 
     return {
       score,
@@ -42,27 +47,38 @@ export function RecoveryWidget() {
       changePct,
       status,
     }
-  }, [recoveryScores, sleepLogs])
+  }, [entries, config])
 
   return (
-    <div className="card space-y-4">
+    <Link
+      href={ROUTES.recovery.root}
+      className="card space-y-4 hover:border-border-default transition-all block group"
+    >
       <div className="card-header">
         <span className="card-label">Recovery & Sleep</span>
-        <Moon className="h-4 w-4 text-text-placeholder" />
+        <div className="flex items-center gap-1 text-text-placeholder group-hover:text-accent transition-colors">
+          <Moon className="h-4 w-4" />
+          <ChevronRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
       </div>
 
       <div className="space-y-4">
-        {/* Large Score Ring / Arc indicator */}
+        {/* Large Score indicator */}
         <div className="flex justify-between items-baseline">
           <div className="space-y-1">
             <span className="font-mono text-3xl font-bold text-accent tracking-tight">
               {recoveryData.score}
             </span>
-            <span className="text-xs text-text-secondary ml-1.5">/ 100 ({recoveryData.status})</span>
+            <span className="text-xs text-text-secondary ml-1.5">
+              / 100 ({recoveryData.status})
+            </span>
           </div>
           <div className="flex items-center gap-1 text-[10px] font-semibold text-accent bg-accent/10 border border-accent/20 px-1.5 py-0.5 rounded">
             <TrendingUp className="h-3 w-3" />
-            {recoveryData.changePct >= 0 ? `+${recoveryData.changePct}%` : `${recoveryData.changePct}%`} vs. baseline
+            {recoveryData.changePct >= 0
+              ? `+${recoveryData.changePct}%`
+              : `${recoveryData.changePct}%`}{" "}
+            vs. previous
           </div>
         </div>
 
@@ -94,7 +110,8 @@ export function RecoveryWidget() {
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   )
 }
+
 export default RecoveryWidget

@@ -13,6 +13,7 @@ export type SyncEntityType =
   | "body"
   | "measurement"
   | "habit"
+  | "recovery"
 
 export type SyncAction = "create" | "update" | "delete"
 

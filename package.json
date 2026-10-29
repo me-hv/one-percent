@@ -10,7 +10,6 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "emulator": "firebase emulators:start --project=your-project-id",
-
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -70,6 +69,7 @@
     "prettier": "^3",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "typescript-eslint": "^8.62.1"
+    "typescript-eslint": "^8.62.1",
+    "vitest": "^5.0.5"
   }
 }

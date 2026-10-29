@@ -1,9 +1,10 @@
 import type { WorkoutSession } from "@/lib/types/training.types"
 import type { WeightLog } from "@/lib/types/body.types"
-import type { RecoveryScore, ReadinessLog } from "@/lib/types/recovery.types"
+import type { RecoveryScore, ReadinessLog, DailyRecoveryEntry } from "@/lib/types/recovery.types"
 import type { Goal } from "@/lib/types/goals.types"
 import type { HabitLog, Habit } from "@/lib/types/habits.types"
 import { subDays, formatDateKey } from "@/lib/utils/date"
+import { calculateReadinessScore } from "@/features/recovery/services/readiness.service"
 
 export interface PerformanceFactor {
   id: string
@@ -32,7 +33,8 @@ export function calculatePerformanceScore(
   recoveryScores: RecoveryScore[] = [],
   readinessLogs: ReadinessLog[] = [],
   habits: Habit[] = [],
-  habitLogs: HabitLog[] = []
+  habitLogs: HabitLog[] = [],
+  recoveryEntries: DailyRecoveryEntry[] = []
 ): PerformanceResult {
   const completedSessions = sessions.filter((s) => s.status === "completed")
 
@@ -83,16 +85,34 @@ export function calculatePerformanceScore(
     ? Math.round(activeGoals.reduce((acc, g) => acc + g.progressPct, 0) / activeGoals.length)
     : 80
 
-  // 5. Recovery Factor (10% Weight)
-  // Average score of recovery/sleep logs over last 7 days
-  const last7Days = subDays(new Date(), 7)
-  const recentRecovery = recoveryScores.filter((r) => {
-    const d = r.createdAt?.toDate?.() ? r.createdAt.toDate() : new Date()
-    return d >= last7Days
-  })
-  const recoveryScore = recentRecovery.length > 0
-    ? Math.round(recentRecovery.reduce((acc, r) => acc + r.score, 0) / recentRecovery.length)
-    : 85
+  // 5. Recovery & Readiness Factor (10% Weight)
+  let recoveryScore = 85
+  if (recoveryEntries.length > 0) {
+    const last7Days = subDays(new Date(), 7)
+    const recentEntries = recoveryEntries.filter(
+      (r) => new Date(r.date + "T00:00:00") >= last7Days
+    )
+    const calculatedScores = recentEntries
+      .map((e) => calculateReadinessScore(e).score)
+      .filter((s): s is number => s !== null)
+
+    if (calculatedScores.length > 0) {
+      recoveryScore = Math.round(
+        calculatedScores.reduce((sum, s) => sum + s, 0) / calculatedScores.length
+      )
+    }
+  } else if (recoveryScores.length > 0) {
+    const last7Days = subDays(new Date(), 7)
+    const recentRecovery = recoveryScores.filter((r) => {
+      const d = r.createdAt?.toDate?.() ? r.createdAt.toDate() : new Date()
+      return d >= last7Days
+    })
+    if (recentRecovery.length > 0) {
+      recoveryScore = Math.round(
+        recentRecovery.reduce((acc, r) => acc + r.score, 0) / recentRecovery.length
+      )
+    }
+  }
 
   // 6. Habit Execution Rate Factor (10% Weight)
   // Completed habit logs in past 14 days vs target

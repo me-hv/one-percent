@@ -5,6 +5,28 @@ All notable changes to the One Percent Fitness Operating System are documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-10-29 — Phase 7.6 Recovery & Readiness System Release
+
+### Added
+- **Recovery & Readiness Domain Foundation**:
+  - `lib/types/recovery.types.ts`: Comprehensive strongly typed models for `DailyRecoveryEntry`, `SorenessRating` (0–5), `WellnessRating1to5` (1–5), `ReadinessFactorBreakdown`, `TrainingLoadSummary`, and `MuscleRecoveryStatus`.
+  - `features/recovery/store/recovery.store.ts`: Zustand store with `one-percent-recovery-store` persistence, schema versioning, and sync queue dispatch.
+  - `features/recovery/repository/recovery.repository.ts`: Local storage repository with seamless offline-first capability.
+  - `features/recovery/data/recovery.seed.ts`: 30-day realistic historical check-in dataset.
+- **Daily Check-In & Sleep Tracking**:
+  - `features/recovery/components/DailyCheckInModal.tsx`: Comprehensive daily check-in with hours/minutes duration inputs, sleep quality (1–5), energy/fatigue/stress/motivation (1–5), DOMS muscle soreness map (0–5), optional biometrics (RHR/HRV), notes, and live readiness preview.
+- **Deterministic Readiness Engine**:
+  - `features/recovery/services/readiness.service.ts`: Pure calculation engine computing transparent 0–100 score dynamically normalizing weights across available factors with neutral classifications and missing-data guard ($\ge 40\%$ completeness).
+- **Training Load & Muscle Recovery**:
+  - `features/recovery/services/training-load.service.ts`: Computes Acute:Chronic Workload Ratio (ACWR), 7d/28d volume, volume change %, and per-muscle recovery status (fresh, recovering, strained, untrained) grounded in actual workout history.
+- **Recovery Dashboard & Analytics (`/recovery`)**:
+  - `app/(app)/recovery/page.tsx`: Full recovery command center integrating readiness score card, sleep trends, wellness trends, muscle recovery map, training workload card, and deterministic insights.
+- **Platform Integrations**:
+  - Connected live recovery metrics into Dashboard `RecoveryWidget`.
+  - Updated `performance.service.ts` to compute the recovery factor (10%) from deterministic readiness calculations.
+  - Updated `goals-sync.service.ts` to support `sleep_hours` and `readiness_score` auto-updates.
+  - Updated `backup.service.ts` and `sync-queue.service.ts` for recovery entity backup, restore, and offline synchronization.
+
 ## [1.0.5] - 2026-08-07 — Phase 7.4.5 Data Integrity, Sync & Production Hardening Release
 
 ### Added

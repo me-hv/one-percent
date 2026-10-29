@@ -108,6 +108,9 @@ export function syncGoalsWithLiveData(
       if (key === "daily_calories") newCurrent = 2500
       if (key === "daily_protein") newCurrent = 185
       if (key === "water_intake") newCurrent = 3500
+    } else if (key === "sleep_hours" || key === "readiness_score") {
+      if (key === "sleep_hours") newCurrent = 8
+      if (key === "readiness_score") newCurrent = 85
     }
 
     if (newCurrent == null) return goal

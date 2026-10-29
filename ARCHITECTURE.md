@@ -14,6 +14,7 @@ graph TD
     SyncQueue --> Firebase[Firebase Firestore & Auth]
     Client --> AnalyticsEngine[Progress Intelligence Engine]
     Client --> GoalsEngine[Goals & Auto-Sync Engine]
+    Client --> RecoveryEngine[Recovery & Readiness Engine]
     Client --> BackupService[Backup & Disaster Recovery Service]
 ```
 
@@ -21,8 +22,8 @@ graph TD
 
 ## 2. Directory & Layer Responsibilities
 
-- `app/(app)/`: App Router pages (`/dashboard`, `/training`, `/analytics`, `/body`, `/goals`).
-- `features/`: Domain-driven feature modules (`auth`, `training`, `goals`, `body`, `analytics`, `performance`, `achievements`). Each feature folder encapsulates its own components, services, and Zustand stores.
+- `app/(app)/`: App Router pages (`/dashboard`, `/training`, `/analytics`, `/body`, `/goals`, `/nutrition`, `/recovery`).
+- `features/`: Domain-driven feature modules (`auth`, `training`, `goals`, `body`, `analytics`, `performance`, `nutrition`, `recovery`, `achievements`). Each feature folder encapsulates its own components, services, and Zustand stores.
 - `lib/`: Core application foundation.
   - `lib/services/`: System infrastructure services (`sync-queue.service.ts`, `backup.service.ts`).
   - `lib/constants/`: Versioning, route registry, cache keys, query keys (`VERSION.ts`, `ROUTES.ts`, `QUERY_KEYS.ts`).

@@ -37,6 +37,7 @@ export type AutoUpdateKey =
   | "daily_protein"
   | "water_intake"
   | "sleep_hours"
+  | "readiness_score"
   | "custom"
 
 export interface GoalMilestone {

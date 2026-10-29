@@ -3,6 +3,7 @@ import type { WorkoutSession, TrainingProgram, WorkoutTemplate, Exercise } from 
 import type { Goal } from "@/lib/types/goals.types"
 import type { WeightLog, BodyMeasurements } from "@/lib/types/body.types"
 import type { HabitLog } from "@/lib/types/habits.types"
+import type { DailyRecoveryEntry } from "@/lib/types/recovery.types"
 
 export interface BackupPayload {
   app: "One Percent"
@@ -19,6 +20,7 @@ export interface BackupPayload {
     weightLogs: WeightLog[]
     bodyMeasurements: BodyMeasurements[]
     habits: HabitLog[]
+    recovery?: DailyRecoveryEntry[]
     settings?: Record<string, unknown>
   }
 }
@@ -69,6 +71,7 @@ export function generateAppDataBackup(): BackupPayload {
   const weightLogs = getItem<WeightLog>(STORE_PERSIST_KEYS.body)
   const bodyMeasurements = getItem<BodyMeasurements>("one-percent-measurement-store")
   const habits = getItem<HabitLog>("one-percent-habit-store")
+  const recovery = getItem<DailyRecoveryEntry>(STORE_PERSIST_KEYS.recovery)
 
   const dataPayload = {
     workouts,
@@ -79,6 +82,7 @@ export function generateAppDataBackup(): BackupPayload {
     weightLogs,
     bodyMeasurements,
     habits,
+    recovery,
   }
 
   const dataStr = JSON.stringify(dataPayload)
@@ -193,6 +197,7 @@ export function restoreAppDataBackup(backup: BackupPayload, mode: "full" | "merg
   setStore(STORE_PERSIST_KEYS.program, "programs", backup.data.programs || [])
   setStore(STORE_PERSIST_KEYS.goals, "goals", backup.data.goals || [])
   setStore(STORE_PERSIST_KEYS.body, "weightLogs", backup.data.weightLogs || [])
+  setStore(STORE_PERSIST_KEYS.recovery, "entries", backup.data.recovery || [])
 
   // Trigger reload to apply restored state across Zustand stores
   window.location.reload()

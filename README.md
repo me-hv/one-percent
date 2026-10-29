@@ -60,6 +60,8 @@ The core philosophy is simple: **Small improvements repeated daily create extrao
   Automated tracking of 1RM (One Rep Max) increases, volume records, and rep milestones across all exercises with historical progression charts.
 * **📈 Progress Tracking & Analytics**
   Interactive data visualizations showing strength curves, total training volume, body weight changes, body fat metrics, and progressive overload graphs.
+* **🔋 Recovery & Readiness System**
+  Deterministic 0–100 daily readiness engine factoring sleep duration, sleep quality, energy, stress, fatigue, and muscle soreness without pseudo-scientific claims. Includes Acute:Chronic Workload Ratio (ACWR) tracking, 10-muscle recovery mapping, and automated platform integration.
 * **🔌 Offline-First Core**
   Local-first design utilizing **IndexedDB** caching and **Firestore Offline Persistence**. Queue modifications while offline; the app auto-syncs when connectivity returns.
 * **📱 Fully Responsive Design**
