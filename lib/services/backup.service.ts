@@ -273,7 +273,25 @@ export function restoreAppDataBackup(backup: BackupPayload, mode: "full" | "merg
           typeof item.id === "string" ? item.id : typeof item.date === "string" ? item.date : `item-${idx}`
 
         existing.forEach((item, idx) => mergedMap.set(getKey(item, idx), item))
-        safeItems.forEach((item, idx) => mergedMap.set(getKey(item, idx), item))
+        safeItems.forEach((item, idx) => {
+          const k = getKey(item, idx)
+          const existingItem = mergedMap.get(k)
+          if (!existingItem) {
+            mergedMap.set(k, item)
+          } else {
+            // Preserve newer local data if local item has a more recent updatedAt or clientTimestamp
+            const existingTime =
+              (typeof existingItem.updatedAt === "string" ? Date.parse(existingItem.updatedAt) : 0) ||
+              (typeof existingItem.clientTimestamp === "number" ? existingItem.clientTimestamp : 0)
+            const itemTime =
+              (typeof item.updatedAt === "string" ? Date.parse(item.updatedAt as string) : 0) ||
+              (typeof item.clientTimestamp === "number" ? (item.clientTimestamp as number) : 0)
+
+            if (itemTime >= existingTime) {
+              mergedMap.set(k, item)
+            }
+          }
+        })
 
         localStorage.setItem(
           key,
@@ -291,14 +309,27 @@ export function restoreAppDataBackup(backup: BackupPayload, mode: "full" | "merg
   if (backup.data) {
     if (backup.data.workouts) setStore(STORE_PERSIST_KEYS.workout, "sessions", backup.data.workouts)
     if (backup.data.programs) setStore(STORE_PERSIST_KEYS.program, "programs", backup.data.programs)
+    if (backup.data.templates) setStore("one-percent-template-store", "templates", backup.data.templates)
+    if (backup.data.exercises) setStore(STORE_PERSIST_KEYS.exercise, "customExercises", backup.data.exercises)
     if (backup.data.goals) setStore(STORE_PERSIST_KEYS.goals, "goals", backup.data.goals)
     if (backup.data.weightLogs) setStore(STORE_PERSIST_KEYS.body, "weightLogs", backup.data.weightLogs)
+    if (backup.data.bodyMeasurements) setStore("one-percent-measurement-store", "measurements", backup.data.bodyMeasurements)
+    if (backup.data.habits) setStore("one-percent-habit-store", "habits", backup.data.habits)
     if (backup.data.recovery) setStore(STORE_PERSIST_KEYS.recovery, "entries", backup.data.recovery)
     if (backup.data.nutrition?.dailyLogs) {
       setStore(STORE_PERSIST_KEYS.nutrition, "dailyLogs", backup.data.nutrition.dailyLogs)
     }
+    if (backup.data.nutrition?.customFoods) {
+      setStore(STORE_PERSIST_KEYS.nutrition, "customFoods", backup.data.nutrition.customFoods)
+    }
+    if (backup.data.nutrition?.savedMeals) {
+      setStore(STORE_PERSIST_KEYS.nutrition, "savedMeals", backup.data.nutrition.savedMeals)
+    }
     if (backup.data.coach?.proposals) {
       setStore(STORE_PERSIST_KEYS.coach, "proposals", backup.data.coach.proposals)
+    }
+    if (backup.data.coach?.weeklyReviews) {
+      setStore(STORE_PERSIST_KEYS.coach, "weeklyReviews", backup.data.coach.weeklyReviews)
     }
   }
 

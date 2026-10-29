@@ -93,4 +93,47 @@ describe("server-auth — Server Authentication & Rate Limiting", () => {
     // 21st request should be rejected
     expect(checkRateLimit(client)).toBe(false)
   })
+
+  it("rejects tokens missing cryptographic signature segment", async () => {
+    // Unsigned token (only 2 parts or empty signature)
+    const unsigned = "eyJhbGciOiJub25lIn0.eyJzdWIiOiJhdHRhY2tlciJ9."
+    const req = new NextRequest("http://localhost:3000/api/coach/chat", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${unsigned}`,
+      },
+    })
+
+    const result = await authenticateServerRequest(req)
+    expect(result.authenticated).toBe(false)
+    expect(result.statusCode).toBe(401)
+  })
+
+  it("rejects tokens with mismatched audience claim", async () => {
+    const originalProj = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = "target-app-project"
+
+    const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64")
+    const payload = Buffer.from(
+      JSON.stringify({
+        sub: "attacker",
+        aud: "attacker-foreign-project",
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      })
+    ).toString("base64")
+    const foreignToken = `${header}.${payload}.valid_length_signature_12345`
+
+    const req = new NextRequest("http://localhost:3000/api/coach/chat", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${foreignToken}`,
+      },
+    })
+
+    const result = await authenticateServerRequest(req)
+    expect(result.authenticated).toBe(false)
+    expect(result.statusCode).toBe(401)
+
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = originalProj
+  })
 })

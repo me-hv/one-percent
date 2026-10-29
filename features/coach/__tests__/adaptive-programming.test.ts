@@ -199,4 +199,123 @@ describe("adaptive-programming.service", () => {
     expect(reverted.status).toBe("reverted")
     expect(replaceExerciseInDay).toHaveBeenCalledWith("prog-test", "day-leg", "ex-101", "squat")
   })
+
+  it("Scenario 2: preserves unrelated exercises when reverting an accepted proposal", () => {
+    const unrelatedExercise: ProgramExercise = {
+      id: "ex-unrelated-2",
+      exerciseId: "bench-press",
+      targetSets: 3,
+      targetReps: "8",
+      targetWeight: 80,
+      orderIndex: 1,
+      restSeconds: 120,
+    }
+
+    const proposal = createAdaptiveProposal({
+      userId: "user-1",
+      program: mockProgram,
+      day: mockDay,
+      exercise: mockExercise, // target is ex-101
+      type: "load_increase",
+      proposedWeightKg: 125,
+      rationale: "Overload",
+      evidence: [],
+    })
+
+    const updateExerciseInDay = vi.fn()
+    const accepted = applyAdaptiveProposal(proposal, { updateExerciseInDay })
+    updateExerciseInDay.mockClear()
+
+    revertAdaptiveProposal(accepted, { updateExerciseInDay })
+
+    // Verify update was ONLY called for the target exercise, never for unrelated exercise
+    expect(updateExerciseInDay).toHaveBeenCalledWith(
+      "prog-test",
+      "day-leg",
+      "ex-101",
+      expect.anything()
+    )
+    expect(updateExerciseInDay).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      "ex-unrelated-2",
+      expect.anything()
+    )
+  })
+
+  it("Scenario 3: detects conflict and refuses rollback if affected exercise was modified after acceptance", () => {
+    const proposal = createAdaptiveProposal({
+      userId: "user-1",
+      program: mockProgram,
+      day: mockDay,
+      exercise: mockExercise, // 120kg
+      type: "load_increase",
+      proposedWeightKg: 125,
+      rationale: "Overload",
+      evidence: [],
+    })
+
+    const updateExerciseInDay = vi.fn()
+    const accepted = applyAdaptiveProposal(proposal, { updateExerciseInDay })
+
+    // User subsequently modified the exercise manually to 130kg and 4 sets
+    const modifiedExercise: ProgramExercise = {
+      ...mockExercise,
+      targetWeight: 130, // modified after proposal was accepted (expected 125)
+      targetSets: 4,
+    }
+
+    // Should throw conflict error without force
+    expect(() =>
+      revertAdaptiveProposal(
+        accepted,
+        { updateExerciseInDay },
+        { currentExercise: modifiedExercise, force: false }
+      )
+    ).toThrowError(/Conflict detected: Exercise was modified after proposal acceptance/)
+
+    // With force: true, reversion succeeds
+    updateExerciseInDay.mockClear()
+    const forceReverted = revertAdaptiveProposal(
+      accepted,
+      { updateExerciseInDay },
+      { currentExercise: modifiedExercise, force: true }
+    )
+    expect(forceReverted.status).toBe("reverted")
+    expect(updateExerciseInDay).toHaveBeenCalledWith(
+      "prog-test",
+      "day-leg",
+      "ex-101",
+      expect.objectContaining({ targetWeight: 120 })
+    )
+  })
+
+  it("Scenario 6: prevents applying or reverting the same proposal twice", () => {
+    const proposal = createAdaptiveProposal({
+      userId: "user-1",
+      program: mockProgram,
+      day: mockDay,
+      exercise: mockExercise,
+      type: "load_increase",
+      proposedWeightKg: 125,
+      rationale: "Overload",
+      evidence: [],
+    })
+
+    const updateExerciseInDay = vi.fn()
+    const accepted = applyAdaptiveProposal(proposal, { updateExerciseInDay })
+
+    // Second apply must fail
+    expect(() => applyAdaptiveProposal(accepted, { updateExerciseInDay })).toThrowError(
+      /Cannot apply proposal in status: accepted/
+    )
+
+    const reverted = revertAdaptiveProposal(accepted, { updateExerciseInDay })
+    expect(reverted.status).toBe("reverted")
+
+    // Second revert must fail
+    expect(() => revertAdaptiveProposal(reverted, { updateExerciseInDay })).toThrowError(
+      /Can only revert accepted proposals. Current status: reverted/
+    )
+  })
 })

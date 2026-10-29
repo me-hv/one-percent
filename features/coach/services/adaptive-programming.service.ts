@@ -160,25 +160,36 @@ export function applyAdaptiveProposal(
   }
 }
 
+export interface RevertProposalActions {
+  updateExerciseInDay: (
+    programId: string,
+    dayId: string,
+    exerciseId: string,
+    updates: Partial<ProgramExercise>
+  ) => void
+  replaceExerciseInDay?: (
+    programId: string,
+    dayId: string,
+    exerciseId: string,
+    newExerciseId: string
+  ) => void
+}
+
+export interface RevertProposalOptions {
+  /** If provided, checks if the exercise was modified after proposal acceptance */
+  currentExercise?: ProgramExercise
+  /** If true, forces reversion even if subsequent edits were detected */
+  force?: boolean
+}
+
 /**
  * Reverts a previously accepted proposal back to its original state using the stored snapshot.
+ * Detects conflicts if the affected exercise was modified after the proposal was accepted.
  */
 export function revertAdaptiveProposal(
   proposal: AdaptiveProposal,
-  actions: {
-    updateExerciseInDay: (
-      programId: string,
-      dayId: string,
-      exerciseId: string,
-      updates: Partial<ProgramExercise>
-    ) => void
-    replaceExerciseInDay?: (
-      programId: string,
-      dayId: string,
-      exerciseId: string,
-      newExerciseId: string
-    ) => void
-  }
+  actions: RevertProposalActions,
+  options?: RevertProposalOptions
 ): AdaptiveProposal {
   if (proposal.status !== "accepted") {
     throw new Error(`Can only revert accepted proposals. Current status: ${proposal.status}`)
@@ -186,6 +197,43 @@ export function revertAdaptiveProposal(
 
   if (!proposal.previousProgramSnapshot) {
     throw new Error("No previous program snapshot available to revert.")
+  }
+
+  // Conflict detection: verify if the affected exercise has changed since proposal acceptance
+  if (options?.currentExercise && !options.force) {
+    const cur = options.currentExercise
+    const proposed = proposal.proposedDetails
+
+    let hasConflict = false
+    const conflicts: string[] = []
+
+    if (proposal.type === "exercise_substitution") {
+      if (proposed.substitutedExerciseId && cur.exerciseId !== proposed.substitutedExerciseId) {
+        hasConflict = true
+        conflicts.push(`Exercise was substituted again to ${cur.exerciseId}`)
+      }
+    } else {
+      if (proposed.weightKg !== undefined && cur.targetWeight !== proposed.weightKg) {
+        hasConflict = true
+        conflicts.push(`Weight changed to ${cur.targetWeight}kg (expected ${proposed.weightKg}kg)`)
+      }
+      if (proposed.sets !== undefined && cur.targetSets !== proposed.sets) {
+        hasConflict = true
+        conflicts.push(`Sets changed to ${cur.targetSets} (expected ${proposed.sets})`)
+      }
+      if (proposed.reps !== undefined && cur.targetReps !== proposed.reps) {
+        hasConflict = true
+        conflicts.push(`Reps changed to ${cur.targetReps} (expected ${proposed.reps})`)
+      }
+    }
+
+    if (hasConflict) {
+      throw new Error(
+        `Conflict detected: Exercise was modified after proposal acceptance (${conflicts.join(
+          ", "
+        )}). Reverting would overwrite subsequent changes. Pass force: true to override.`
+      )
+    }
   }
 
   const parsed = JSON.parse(proposal.previousProgramSnapshot)

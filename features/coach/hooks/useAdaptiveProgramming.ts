@@ -83,12 +83,23 @@ export function useAdaptiveProgramming(userId: string) {
    * Reverts a previously accepted proposal back to its original state
    */
   const revertProposal = useCallback(
-    async (proposal: AdaptiveProposal) => {
+    async (proposal: AdaptiveProposal, force: boolean = false) => {
       try {
-        const reverted = revertAdaptiveProposal(proposal, {
-          updateExerciseInDay,
-          replaceExerciseInDay,
-        })
+        // Resolve current exercise from active program for conflict detection
+        const programs = useProgramsStore.getState().programs
+        const targetProgram = programs.find((p) => p.id === proposal.programId)
+        const currentExercise = targetProgram?.days
+          .find((d) => d.id === proposal.dayId)
+          ?.exercises.find((e) => e.id === proposal.exerciseId)
+
+        const reverted = revertAdaptiveProposal(
+          proposal,
+          {
+            updateExerciseInDay,
+            replaceExerciseInDay,
+          },
+          { currentExercise, force }
+        )
 
         updateProposalStatus(proposal.id, "reverted")
 
@@ -101,10 +112,10 @@ export function useAdaptiveProgramming(userId: string) {
         })
       } catch (err: any) {
         console.error("[AdaptiveProgramming] Error reverting proposal:", err)
-        toast.error("Failed to revert adjustment")
+        toast.error(err?.message || "Failed to revert adjustment")
       }
     },
-    [userId, updateExerciseInDay, updateProposalStatus]
+    [userId, updateExerciseInDay, replaceExerciseInDay, updateProposalStatus]
   )
 
   return {

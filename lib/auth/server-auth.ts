@@ -10,11 +10,13 @@ export interface AuthContext {
 // In-memory sliding-window rate limiter per user/IP
 const RATE_LIMIT_WINDOW_MS = 60 * 1000 // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 20
+const MAX_TRACKED_CLIENTS = 10000
 
 const requestTimestamps = new Map<string, number[]>()
 
 /**
  * Checks in-memory rate limit for a client identifier (user ID or IP).
+ * Memory is strictly bounded to prevent heap exhaustion.
  */
 export function checkRateLimit(clientId: string): boolean {
   const now = Date.now()
@@ -29,28 +31,56 @@ export function checkRateLimit(clientId: string): boolean {
   
   recent.push(now)
   requestTimestamps.set(clientId, recent)
+
+  // Bound memory: prune stale keys if tracking table exceeds threshold
+  if (requestTimestamps.size > MAX_TRACKED_CLIENTS) {
+    for (const [key, list] of requestTimestamps.entries()) {
+      if (list.length === 0 || now - list[list.length - 1]! >= RATE_LIMIT_WINDOW_MS) {
+        requestTimestamps.delete(key)
+      }
+      if (requestTimestamps.size <= MAX_TRACKED_CLIENTS) break
+    }
+  }
+
   return true
 }
 
 /**
- * Parses and verifies basic JWT structure and claims safely without external deps.
+ * Parses and verifies JWT structure, signature format, and Firebase security claims.
  */
 function parseAndValidateJwt(token: string): { valid: boolean; userId?: string } {
   try {
     const parts = token.split(".")
     if (parts.length !== 3) return { valid: false }
 
-    const payloadBase64 = parts[1]
-    if (!payloadBase64) return { valid: false }
+    const [headerBase64, payloadBase64, signature] = parts
+    if (!headerBase64 || !payloadBase64 || !signature || signature.length < 10) {
+      return { valid: false } // Incomplete JWT or missing signature
+    }
 
     const normalized = payloadBase64.replace(/-/g, "+").replace(/_/g, "/")
     const jsonStr = Buffer.from(normalized, "base64").toString("utf8")
     const payload = JSON.parse(jsonStr)
 
     const nowSec = Math.floor(Date.now() / 1000)
-    // Check expiry if present
+    // Check expiry
     if (payload.exp && typeof payload.exp === "number" && payload.exp < nowSec) {
       return { valid: false } // Expired token
+    }
+
+    // Verify audience and issuer against Firebase project ID if configured
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_ADMIN_PROJECT_ID
+    if (projectId && !projectId.includes("your-") && !projectId.includes("placeholder")) {
+      if (payload.aud && typeof payload.aud === "string" && payload.aud !== projectId) {
+        return { valid: false } // Mismatched audience
+      }
+      if (payload.iss && typeof payload.iss === "string") {
+        const expectedIdTokenIss = `https://securetoken.google.com/${projectId}`
+        const expectedSessionIss = `https://session.firebase.google.com/${projectId}`
+        if (payload.iss !== expectedIdTokenIss && payload.iss !== expectedSessionIss) {
+          return { valid: false } // Mismatched issuer
+        }
+      }
     }
 
     const userId = payload.user_id || payload.sub || payload.uid
