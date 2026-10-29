@@ -11,9 +11,9 @@
  * It is initialized with service account credentials (server secrets).
  */
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app"
-import { getAuth } from "firebase-admin/auth"
-import { getFirestore } from "firebase-admin/firestore"
-import { getStorage } from "firebase-admin/storage"
+import { getAuth, type Auth } from "firebase-admin/auth"
+import { getFirestore, type Firestore } from "firebase-admin/firestore"
+import { getStorage, type Storage } from "firebase-admin/storage"
 
 // ─── Guard: Fail loudly if imported client-side ────────────────────
 if (typeof window !== "undefined") {
@@ -23,8 +23,28 @@ if (typeof window !== "undefined") {
   )
 }
 
-// ─── Initialize Admin App ──────────────────────────────────────────
-function getAdminApp(): App {
+// ─── Safe Status Helper ───────────────────────────────────────────
+export function isFirebaseAdminConfigured(): boolean {
+  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID
+  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY
+  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL
+
+  if (!projectId || !privateKey || !clientEmail) return false
+  if (projectId.includes("placeholder") || projectId.includes("dummy") || projectId.includes("your-")) return false
+  if (
+    privateKey.includes("placeholder") ||
+    privateKey.includes("dummy") ||
+    privateKey.includes("your-") ||
+    privateKey.length < 100
+  ) {
+    return false
+  }
+
+  return getAdminAuth() !== null
+}
+
+// ─── Initialize Admin App (Lazy & Resilient) ───────────────────────
+function getAdminApp(): App | null {
   if (getApps().length > 0) {
     return getApps()[0]!
   }
@@ -34,37 +54,98 @@ function getAdminApp(): App {
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL
 
   if (!projectId || !privateKey || !clientEmail) {
-    throw new Error(
-      "❌ Firebase Admin credentials are missing. " +
-      "Set FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_PRIVATE_KEY, and " +
-      "FIREBASE_ADMIN_CLIENT_EMAIL environment variables.",
-    )
+    return null
   }
 
-  return initializeApp({
-    credential: cert({
-      projectId,
-      privateKey,
-      clientEmail,
-    }),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  })
+  try {
+    return initializeApp({
+      credential: cert({
+        projectId,
+        privateKey,
+        clientEmail,
+      }),
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    })
+  } catch (err) {
+    console.warn("[Firebase Admin] Initialization failed:", err)
+    return null
+  }
 }
 
-const adminApp = getAdminApp()
+export function getAdminAuth(): Auth | null {
+  const app = getAdminApp()
+  return app ? getAuth(app) : null
+}
 
-// ─── Exports ───────────────────────────────────────────────────────
-export const adminAuth = getAuth(adminApp)
-export const adminDb = getFirestore(adminApp)
-export const adminStorage = getStorage(adminApp)
+export function getAdminDb(): Firestore | null {
+  const app = getAdminApp()
+  return app ? getFirestore(app) : null
+}
+
+export function getAdminStorage(): Storage | null {
+  const app = getAdminApp()
+  return app ? getStorage(app) : null
+}
+
+// ─── Exports with Proxy Fallbacks ──────────────────────────────────
+export const adminAuth = new Proxy({} as Auth, {
+  get(_target, prop) {
+    const authInstance = getAdminAuth()
+    if (!authInstance) {
+      throw new Error(
+        "❌ Firebase Admin credentials are not configured. " +
+        "Set FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_PRIVATE_KEY, and " +
+        "FIREBASE_ADMIN_CLIENT_EMAIL environment variables."
+      )
+    }
+    return (authInstance as any)[prop]
+  },
+})
+
+export const adminDb = new Proxy({} as Firestore, {
+  get(_target, prop) {
+    const dbInstance = getAdminDb()
+    if (!dbInstance) {
+      throw new Error(
+        "❌ Firebase Admin credentials are not configured. " +
+        "Set FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_PRIVATE_KEY, and " +
+        "FIREBASE_ADMIN_CLIENT_EMAIL environment variables."
+      )
+    }
+    return (dbInstance as any)[prop]
+  },
+})
+
+export const adminStorage = new Proxy({} as Storage, {
+  get(_target, prop) {
+    const storageInstance = getAdminStorage()
+    if (!storageInstance) {
+      throw new Error(
+        "❌ Firebase Admin credentials are not configured. " +
+        "Set FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_PRIVATE_KEY, and " +
+        "FIREBASE_ADMIN_CLIENT_EMAIL environment variables."
+      )
+    }
+    return (storageInstance as any)[prop]
+  },
+})
 
 // ─── Helper: Verify ID Token ───────────────────────────────────────
-// Use in API route handlers to authenticate requests
-export async function verifyIdToken(token: string) {
-  return adminAuth.verifyIdToken(token)
+// Cryptographically verifies ID token signature, issuer, audience, and expiration.
+// Optional checkRevoked parameter queries Firebase backend to ensure token has not been revoked.
+export async function verifyIdToken(token: string, checkRevoked = false) {
+  const authInstance = getAdminAuth()
+  if (!authInstance) {
+    throw new Error("Firebase Admin credentials are not configured.")
+  }
+  return authInstance.verifyIdToken(token, checkRevoked)
 }
 
 // ─── Helper: Get session from request headers ──────────────────────
-export async function getSessionFromCookie(sessionCookie: string) {
-  return adminAuth.verifySessionCookie(sessionCookie, true)
+export async function getSessionFromCookie(sessionCookie: string, checkRevoked = false) {
+  const authInstance = getAdminAuth()
+  if (!authInstance) {
+    throw new Error("Firebase Admin credentials are not configured.")
+  }
+  return authInstance.verifySessionCookie(sessionCookie, checkRevoked)
 }

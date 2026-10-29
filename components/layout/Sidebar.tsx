@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -23,6 +24,8 @@ import { useUIStore } from "@/lib/store/ui.store"
 import { useAuthStore } from "@/lib/store/auth.store"
 import { ROUTES } from "@/lib/constants/ROUTES"
 import { authService } from "@/features/auth/services/auth.service"
+import { syncQueueService } from "@/lib/services/sync-queue.service"
+import { SafeSignOutModal } from "./SafeSignOutModal"
 
 import { toast } from "sonner"
 
@@ -31,7 +34,27 @@ export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar } = useUIStore()
   const { profile } = useAuthStore()
 
-  const handleSignOut = async () => {
+  const [showSignOutModal, setShowSignOutModal] = useState(false)
+  const [isOfflineWarning, setIsOfflineWarning] = useState(false)
+  const [pendingChangesCount, setPendingChangesCount] = useState(0)
+
+  const initiateSignOut = () => {
+    const offline = typeof navigator !== "undefined" && !navigator.onLine
+    const pendingOps = syncQueueService
+      .getQueue()
+      .filter((op) => op.status === "pending" || op.status === "processing" || op.status === "failed")
+
+    if (offline || pendingOps.length > 0) {
+      setIsOfflineWarning(offline)
+      setPendingChangesCount(pendingOps.length)
+      setShowSignOutModal(true)
+      return
+    }
+
+    void performSignOut()
+  }
+
+  const performSignOut = async () => {
     try {
       await authService.signOut()
       // Clear cookie for middleware auth checks
@@ -39,6 +62,8 @@ export function Sidebar() {
       toast.success("Signed out successfully")
     } catch (error) {
       toast.error("Error signing out")
+    } finally {
+      setShowSignOutModal(false)
     }
   }
 
@@ -167,7 +192,7 @@ export function Sidebar() {
               </div>
             </div>
             <button
-              onClick={handleSignOut}
+              onClick={initiateSignOut}
               className="p-1.5 rounded hover:bg-bg-elevated text-text-placeholder hover:text-negative transition-colors"
               aria-label="Sign out"
             >
@@ -176,6 +201,14 @@ export function Sidebar() {
           </div>
         )}
       </div>
+
+      <SafeSignOutModal
+        isOpen={showSignOutModal}
+        onClose={() => setShowSignOutModal(false)}
+        onConfirmSignOut={performSignOut}
+        isOffline={isOfflineWarning}
+        pendingChangesCount={pendingChangesCount}
+      />
     </aside>
   )
 }

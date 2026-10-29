@@ -155,6 +155,13 @@ class SyncQueueService {
     return [...this.queue]
   }
 
+  public clearQueueForTesting(): void {
+    this.queue = []
+    this.isProcessing = false
+    this.saveQueue()
+    this.notifyListeners()
+  }
+
   public subscribe(listener: (queue: SyncOperation[]) => void): () => void {
     this.listeners.add(listener)
     return () => this.listeners.delete(listener)

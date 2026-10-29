@@ -136,4 +136,76 @@ describe("server-auth — Server Authentication & Rate Limiting", () => {
 
     process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = originalProj
   })
+
+  it("supports injecting a cryptographic test verifier to reject forged signatures", async () => {
+    const { setTokenVerifierForTesting } = await import("../server-auth")
+
+    // Mock verifier that enforces cryptographic validation
+    setTokenVerifierForTesting(async (token: string) => {
+      if (token.endsWith("valid_crypto_sig")) {
+        return { valid: true, userId: "verified-athlete" }
+      }
+      return { valid: false, error: "Cryptographic signature mismatch" }
+    })
+
+    const forgedReq = new NextRequest("http://localhost:3000/api/coach/chat", {
+      method: "POST",
+      headers: { authorization: "Bearer token.with.forged_signature" },
+    })
+    const forgedResult = await authenticateServerRequest(forgedReq)
+    expect(forgedResult.authenticated).toBe(false)
+    expect(forgedResult.statusCode).toBe(401)
+    expect(forgedResult.error).toContain("Cryptographic signature mismatch")
+
+    const validReq = new NextRequest("http://localhost:3000/api/coach/chat", {
+      method: "POST",
+      headers: { authorization: "Bearer valid.token.valid_crypto_sig" },
+    })
+    const validResult = await authenticateServerRequest(validReq)
+    expect(validResult.authenticated).toBe(true)
+    expect(validResult.userId).toBe("verified-athlete")
+
+    // Reset test verifier
+    setTokenVerifierForTesting(null)
+  })
+
+  it("rejects tokens with future iat timestamp (clock skew > 60s)", async () => {
+    const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64")
+    const payload = Buffer.from(
+      JSON.stringify({
+        sub: "time-traveler",
+        iat: Math.floor(Date.now() / 1000) + 120, // 2 minutes in future
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      })
+    ).toString("base64")
+    const futureToken = `${header}.${payload}.valid_signature_123`
+
+    const req = new NextRequest("http://localhost:3000/api/coach/chat", {
+      method: "POST",
+      headers: { authorization: `Bearer ${futureToken}` },
+    })
+
+    const result = await authenticateServerRequest(req)
+    expect(result.authenticated).toBe(false)
+    expect(result.statusCode).toBe(401)
+  })
+
+  it("rejects tokens with missing sub or uid", async () => {
+    const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64")
+    const payload = Buffer.from(
+      JSON.stringify({
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      })
+    ).toString("base64")
+    const emptySubToken = `${header}.${payload}.valid_signature_123`
+
+    const req = new NextRequest("http://localhost:3000/api/coach/chat", {
+      method: "POST",
+      headers: { authorization: `Bearer ${emptySubToken}` },
+    })
+
+    const result = await authenticateServerRequest(req)
+    expect(result.authenticated).toBe(false)
+    expect(result.statusCode).toBe(401)
+  })
 })
