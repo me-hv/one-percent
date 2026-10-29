@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { getFirebaseAuthErrorMessage } from "@/features/auth/utils/auth-errors"
 import { authService } from "@/features/auth/services/auth.service"
+import { GoogleSignInButton } from "@/features/auth/components/GoogleSignInButton"
 import { useAuthStore } from "@/lib/store/auth.store"
 import { ROUTES } from "@/lib/constants/ROUTES"
 import { toast } from "sonner"
 import { ArrowRight, Loader2, AlertCircle } from "lucide-react"
+import type { UserCredential } from "firebase/auth"
+import type { UserProfile, UserPreferences } from "@/lib/types/user.types"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -19,6 +22,22 @@ export default function RegisterPage() {
   const [formError, setFormError] = useState<string | null>(null)
 
   const { setUser, setProfile, setPreferences } = useAuthStore()
+
+  const handleGoogleSuccess = ({
+    credential,
+    profile,
+    preferences,
+  }: {
+    credential: UserCredential
+    profile: UserProfile
+    preferences: UserPreferences
+  }) => {
+    setUser(credential.user)
+    setProfile(profile)
+    setPreferences(preferences)
+    toast.success("Account ready — Welcome to One Percent")
+    router.push(ROUTES.dashboard)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,7 +62,7 @@ export default function RegisterPage() {
       toast.success("Account created successfully")
       router.push(ROUTES.dashboard)
     } catch (err: any) {
-      console.error(err)
+      console.error("[Register Error]", err)
       const message = getFirebaseAuthErrorMessage(err)
       setFormError(message)
       toast.error(message)
@@ -60,11 +79,11 @@ export default function RegisterPage() {
           Create an account
         </h1>
         <p className="text-sm text-text-secondary">
-          Enter your details below to set up your fitness operating system.
+          Enter your details below or use Google to set up your fitness operating system.
         </p>
       </div>
 
-      {/* ─── Form ──────────────────────────────────────────────────── */}
+      {/* ─── Error Alert Banner ────────────────────────────────────── */}
       {formError && (
         <div className="p-3 text-xs rounded-md bg-destructive/10 border border-destructive/20 text-destructive flex items-start gap-2">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -72,6 +91,27 @@ export default function RegisterPage() {
         </div>
       )}
 
+      {/* ─── Continue with Google ──────────────────────────────────── */}
+      <GoogleSignInButton
+        onSuccess={handleGoogleSuccess}
+        onError={(msg) => setFormError(msg)}
+        disabled={loading}
+        text="Continue with Google"
+      />
+
+      {/* ─── Divider ──────────────────────────────────────────────── */}
+      <div className="relative my-4">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-border-default" />
+        </div>
+        <div className="relative flex justify-center text-[10px] font-mono tracking-widest uppercase">
+          <span className="bg-base px-2.5 text-text-placeholder">
+            Or sign up with email
+          </span>
+        </div>
+      </div>
+
+      {/* ─── Form ──────────────────────────────────────────────────── */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1">
           <label

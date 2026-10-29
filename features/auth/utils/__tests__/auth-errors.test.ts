@@ -27,6 +27,25 @@ describe("getFirebaseAuthErrorMessage", () => {
     expect(msg).toContain("Sign-in method")
   })
 
+  it("handles blocked popup error with browser permission guidance", () => {
+    const msg = getFirebaseAuthErrorMessage({ code: "auth/popup-blocked" })
+    expect(msg).toContain("blocked by your browser")
+    expect(msg).toContain("allow popups")
+  })
+
+  it("handles account exists with different credential", () => {
+    const msg = getFirebaseAuthErrorMessage({ code: "auth/account-exists-with-different-credential" })
+    expect(msg).toContain("different sign-in method")
+    expect(msg).toContain("original method")
+  })
+
+  it("handles popup closed by user and cancelled popup request", () => {
+    const closedMsg = getFirebaseAuthErrorMessage({ code: "auth/popup-closed-by-user" })
+    const cancelMsg = getFirebaseAuthErrorMessage({ code: "auth/cancelled-popup-request" })
+    expect(closedMsg).toContain("Authentication window was closed")
+    expect(cancelMsg).toContain("Only one sign-in window")
+  })
+
   it("handles too many requests rate limit", () => {
     const msg = getFirebaseAuthErrorMessage({ code: "auth/too-many-requests" })
     expect(msg).toContain("temporarily disabled")

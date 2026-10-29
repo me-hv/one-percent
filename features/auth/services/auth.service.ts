@@ -1,6 +1,8 @@
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut as firebaseSignOut,
   updateProfile as firebaseUpdateProfile,
   type UserCredential,
@@ -42,6 +44,48 @@ export const authService = {
       authRepository.getProfile(credential.user.uid),
       authRepository.getPreferences(credential.user.uid),
     ])
+
+    return { credential, profile, preferences }
+  },
+
+  /**
+   * Sign in or register with Google via popup
+   */
+  async signInWithGoogle(): Promise<{
+    credential: UserCredential
+    profile: UserProfile
+    preferences: UserPreferences
+  }> {
+    const provider = new GoogleAuthProvider()
+    provider.setCustomParameters({ prompt: "select_account" })
+    const credential = await signInWithPopup(auth, provider)
+    const token = await credential.user.getIdToken()
+    setSessionCookie(token)
+
+    // Check if profile and preferences already exist (returning user vs first-time user)
+    let [profile, preferences] = await Promise.all([
+      authRepository.getProfile(credential.user.uid),
+      authRepository.getPreferences(credential.user.uid),
+    ])
+
+    // If new user, create profile and default preferences
+    if (!profile) {
+      const email = credential.user.email || ""
+      const displayName = credential.user.displayName || email.split("@")[0] || "Athlete"
+      profile = await authRepository.createProfile(credential.user.uid, email, displayName)
+      if (credential.user.photoURL) {
+        await authRepository.updateProfile(credential.user.uid, { photoURL: credential.user.photoURL })
+        profile.photoURL = credential.user.photoURL
+      }
+    } else if (credential.user.photoURL && !profile.photoURL) {
+      // Sync photoURL if existing user profile has none
+      await authRepository.updateProfile(credential.user.uid, { photoURL: credential.user.photoURL })
+      profile.photoURL = credential.user.photoURL
+    }
+
+    if (!preferences) {
+      preferences = await authRepository.createPreferences(credential.user.uid)
+    }
 
     return { credential, profile, preferences }
   },

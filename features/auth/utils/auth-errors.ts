@@ -38,24 +38,28 @@ export function getFirebaseAuthErrorMessage(error: unknown): string {
       return "Password is too weak. Please choose a password with at least 6 characters, combining letters and numbers."
 
     case "auth/operation-not-allowed":
-      return "Email and password sign-in is not enabled for this project. Please enable it in the Firebase Console under Authentication > Sign-in method."
+      return "This sign-in provider is not enabled for this project. Please enable Google or Email sign-in in the Firebase Console under Authentication > Sign-in method."
 
     case "auth/unauthorized-domain":
       return "This domain is not authorized for Firebase Authentication. Please add this domain to Authorized Domains in the Firebase Console under Authentication > Settings."
 
-    case "auth/too-many-requests":
-      return "Access to this account has been temporarily disabled due to too many failed login attempts. Please reset your password or try again later."
+    case "auth/account-exists-with-different-credential":
+      return "An account already exists with this email using a different sign-in method. Please sign in using your original method."
 
-    case "auth/configuration-not-found":
-    case "auth/invalid-api-key":
-      return "Firebase project configuration error. Please verify that your API key and project settings in .env.local are valid."
+    case "auth/popup-blocked":
+      return "The sign-in popup was blocked by your browser. Please allow popups for this site and try again."
 
     case "auth/popup-closed-by-user":
+      return "Authentication window was closed before completing sign-in."
+
     case "auth/cancelled-popup-request":
-      return "Authentication window was closed before completing sign-in. Please try again."
+      return "Only one sign-in window can be open at a time. Please complete or close the existing window."
 
     case "auth/requires-recent-login":
       return "This sensitive action requires you to re-authenticate. Please log out and sign in again."
+
+    case "auth/too-many-requests":
+      return "Access to this account has been temporarily disabled due to many failed login attempts. Please try again later or reset your password."
 
     default:
       // Strip "Firebase: " prefix if present in the raw error message
