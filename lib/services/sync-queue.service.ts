@@ -14,6 +14,8 @@ export type SyncEntityType =
   | "measurement"
   | "habit"
   | "recovery"
+  | "coach"
+  | "proposal"
 
 export type SyncAction = "create" | "update" | "delete"
 

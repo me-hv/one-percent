@@ -13,4 +13,5 @@ export const STORE_PERSIST_KEYS = {
   exercise: "one-percent-exercise-store",
   program: "one-percent-program-store",
   recovery: "one-percent-recovery-store",
+  coach: "one-percent-coach-store",
 } as const
