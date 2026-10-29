@@ -62,29 +62,43 @@ export const authService = {
     const token = await credential.user.getIdToken()
     setSessionCookie(token)
 
-    // Check if profile and preferences already exist (returning user vs first-time user)
-    let [profile, preferences] = await Promise.all([
-      authRepository.getProfile(credential.user.uid),
-      authRepository.getPreferences(credential.user.uid),
-    ])
+    const userId = credential.user.uid
+    const email = credential.user.email || ""
+    const displayName = credential.user.displayName || email.split("@")[0] || "Athlete"
+    const photoURL = credential.user.photoURL || undefined
 
-    // If new user, create profile and default preferences
-    if (!profile) {
-      const email = credential.user.email || ""
-      const displayName = credential.user.displayName || email.split("@")[0] || "Athlete"
-      profile = await authRepository.createProfile(credential.user.uid, email, displayName)
-      if (credential.user.photoURL) {
-        await authRepository.updateProfile(credential.user.uid, { photoURL: credential.user.photoURL })
-        profile.photoURL = credential.user.photoURL
-      }
-    } else if (credential.user.photoURL && !profile.photoURL) {
-      // Sync photoURL if existing user profile has none
-      await authRepository.updateProfile(credential.user.uid, { photoURL: credential.user.photoURL })
-      profile.photoURL = credential.user.photoURL
+    // 1. Fetch existing profile and preferences safely (resilient to missing docs)
+    let profile: UserProfile | null = null
+    let preferences: UserPreferences | null = null
+
+    try {
+      profile = await authRepository.getProfile(userId)
+    } catch (err: any) {
+      console.warn("[authService] Could not load profile:", err?.message || err)
     }
 
+    try {
+      preferences = await authRepository.getPreferences(userId)
+    } catch (err: any) {
+      console.warn("[authService] Could not load preferences:", err?.message || err)
+    }
+
+    // 2. First-time user: create profile idempotently with photoURL in a single write
+    if (!profile) {
+      profile = await authRepository.createProfile(userId, email, displayName, photoURL)
+    } else if (photoURL && !profile.photoURL) {
+      // Returning user: sync photoURL if missing
+      try {
+        await authRepository.updateProfile(userId, { photoURL })
+        profile.photoURL = photoURL
+      } catch (err: any) {
+        console.warn("[authService] Failed to sync photoURL:", err?.message || err)
+      }
+    }
+
+    // 3. Ensure preferences exist
     if (!preferences) {
-      preferences = await authRepository.createPreferences(credential.user.uid)
+      preferences = await authRepository.createPreferences(userId)
     }
 
     return { credential, profile, preferences }

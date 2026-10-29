@@ -3,6 +3,40 @@ import { db } from "@/lib/firebase/firestore"
 import type { UserProfile, UserPreferences } from "@/lib/types/user.types"
 import { Timestamp } from "firebase/firestore"
 
+/**
+ * Generates default user preferences in memory.
+ */
+export function getDefaultPreferences(userId: string): UserPreferences {
+  return {
+    userId,
+    units: {
+      weight: "kg",
+      distance: "km",
+      height: "cm",
+      length: "cm",
+    },
+    theme: "dark",
+    startOfWeek: 1, // Monday
+    dashboardWidgets: [
+      { id: "widget-briefing", type: "coach_briefing", position: 0, visible: true },
+      { id: "widget-streak", type: "streak", position: 1, visible: true },
+      { id: "widget-training", type: "training_summary", position: 2, visible: true },
+      { id: "widget-nutrition", type: "todays_nutrition", position: 3, visible: true },
+    ],
+    sidebarCollapsed: false,
+    notifications: {
+      workoutReminders: true,
+      workoutReminderTime: "08:00",
+      habitReminders: true,
+      weeklyDigest: true,
+      prAlerts: true,
+      goalUpdates: true,
+      coachMessages: true,
+      streakAlerts: true,
+    },
+  }
+}
+
 export const authRepository = {
   /**
    * Retrieves a user profile by ID
@@ -15,9 +49,14 @@ export const authRepository = {
   },
 
   /**
-   * Creates or updates a user profile document
+   * Creates or updates a user profile document idempotently
    */
-  async createProfile(userId: string, email: string, displayName: string): Promise<UserProfile> {
+  async createProfile(
+    userId: string,
+    email: string,
+    displayName: string,
+    photoURL?: string | null
+  ): Promise<UserProfile> {
     const profile: UserProfile = {
       id: userId,
       uid: userId,
@@ -33,7 +72,11 @@ export const authRepository = {
       features: {},
     }
 
-    await setDoc(doc(db, "users", userId), profile)
+    if (photoURL) {
+      profile.photoURL = photoURL
+    }
+
+    await setDoc(doc(db, "users", userId), profile, { merge: true })
     return profile
   },
 
@@ -42,56 +85,49 @@ export const authRepository = {
    */
   async updateProfile(userId: string, updates: Partial<UserProfile>): Promise<void> {
     const docRef = doc(db, "users", userId)
-    await updateDoc(docRef, {
-      ...updates,
-      updatedAt: Timestamp.now(),
-    })
+    await setDoc(
+      docRef,
+      {
+        ...updates,
+        updatedAt: Timestamp.now(),
+      },
+      { merge: true }
+    )
   },
 
   /**
-   * Retrieves user preferences by ID
+   * Retrieves user preferences by ID, with graceful fallback to default preferences
    */
   async getPreferences(userId: string): Promise<UserPreferences | null> {
-    const docRef = doc(db, "preferences", userId)
-    const snap = await getDoc(docRef)
-    if (!snap.exists()) return null
-    return snap.data() as UserPreferences
+    try {
+      const docRef = doc(db, "preferences", userId)
+      const snap = await getDoc(docRef)
+      if (!snap.exists()) return null
+      return snap.data() as UserPreferences
+    } catch (err: any) {
+      console.warn(
+        "[authRepository] Could not fetch preferences from Firestore, falling back to defaults:",
+        err?.message || err
+      )
+      return getDefaultPreferences(userId)
+    }
   },
 
   /**
    * Creates default preferences document for a user
    */
   async createPreferences(userId: string): Promise<UserPreferences> {
-    const preferences: UserPreferences = {
-      userId,
-      units: {
-        weight: "kg",
-        distance: "km",
-        height: "cm",
-        length: "cm",
-      },
-      theme: "dark",
-      startOfWeek: 1, // Monday
-      dashboardWidgets: [
-        { id: "widget-briefing", type: "coach_briefing", position: 0, visible: true },
-        { id: "widget-streak", type: "streak", position: 1, visible: true },
-        { id: "widget-training", type: "training_summary", position: 2, visible: true },
-        { id: "widget-nutrition", type: "todays_nutrition", position: 3, visible: true },
-      ],
-      sidebarCollapsed: false,
-      notifications: {
-        workoutReminders: true,
-        workoutReminderTime: "08:00",
-        habitReminders: true,
-        weeklyDigest: true,
-        prAlerts: true,
-        goalUpdates: true,
-        coachMessages: true,
-        streakAlerts: true,
-      },
+    const preferences = getDefaultPreferences(userId)
+
+    try {
+      await setDoc(doc(db, "preferences", userId), preferences, { merge: true })
+    } catch (err: any) {
+      console.warn(
+        "[authRepository] Could not persist preferences to Firestore:",
+        err?.message || err
+      )
     }
 
-    await setDoc(doc(db, "preferences", userId), preferences)
     return preferences
   },
 
@@ -99,7 +135,14 @@ export const authRepository = {
    * Updates user preferences partially
    */
   async updatePreferences(userId: string, updates: Partial<UserPreferences>): Promise<void> {
-    const docRef = doc(db, "preferences", userId)
-    await updateDoc(docRef, updates)
+    try {
+      const docRef = doc(db, "preferences", userId)
+      await setDoc(docRef, updates, { merge: true })
+    } catch (err: any) {
+      console.warn(
+        "[authRepository] Could not update preferences in Firestore:",
+        err?.message || err
+      )
+    }
   },
 }

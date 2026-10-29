@@ -1,20 +1,42 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection
+    // Reusable ownership helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 1. Users collection: /users/{userId}
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isOwner(userId);
       
-      // User subcollections (workouts, programs, templates, goals, weightLogs, bodyMeasurements, habits, etc.)
+      // User subcollections (sessions, prs, programs, templates, workouts, etc.)
       match /{subcollection=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
     }
 
-    // Top-level collections with userId property
+    // 2. User preferences collection: /preferences/{userId}
+    match /preferences/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // 3. Fallback for any top-level collections with userId ownership
     match /{collectionName}/{docId} {
-      allow read, write: if request.auth != null && (
-        resource == null || resource.data.userId == request.auth.uid
+      allow read: if isAuthenticated() && (
+        docId == request.auth.uid ||
+        (resource != null && resource.data.userId == request.auth.uid)
+      );
+      allow create: if isAuthenticated() && (
+        docId == request.auth.uid ||
+        request.resource.data.userId == request.auth.uid
+      );
+      allow update, delete: if isAuthenticated() && (
+        docId == request.auth.uid ||
+        (resource != null && resource.data.userId == request.auth.uid)
       );
     }
   }

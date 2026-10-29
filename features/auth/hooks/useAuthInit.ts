@@ -29,22 +29,29 @@ export function useAuthInit() {
             const profileRef = doc(db, "users", user.uid)
             const prefsRef = doc(db, "preferences", user.uid)
 
-            const [profileSnap, prefsSnap] = await Promise.all([
-              getDoc(profileRef),
-              getDoc(prefsRef),
-            ])
+            let profileData: UserProfile | null = null
+            let prefsData: UserPreferences | null = null
 
-            if (profileSnap.exists()) {
-              setProfile(profileSnap.data() as UserProfile)
-            } else {
-              setProfile(null)
+            try {
+              const profileSnap = await getDoc(profileRef)
+              if (profileSnap.exists()) {
+                profileData = profileSnap.data() as UserProfile
+              }
+            } catch (pErr: any) {
+              console.warn("[useAuthInit] Failed to fetch user profile doc:", pErr?.message || pErr)
             }
 
-            if (prefsSnap.exists()) {
-              setPreferences(prefsSnap.data() as UserPreferences)
-            } else {
-              setPreferences(null)
+            try {
+              const prefsSnap = await getDoc(prefsRef)
+              if (prefsSnap.exists()) {
+                prefsData = prefsSnap.data() as UserPreferences
+              }
+            } catch (prErr: any) {
+              console.warn("[useAuthInit] Failed to fetch user preferences doc:", prErr?.message || prErr)
             }
+
+            setProfile(profileData)
+            setPreferences(prefsData)
           } else {
             setUser(null)
             setProfile(null)
