@@ -96,6 +96,9 @@ let testVerifier: TestTokenVerifier | null = null
  * Pass null to restore standard production verifier.
  */
 export function setTokenVerifierForTesting(verifier: TestTokenVerifier | null): void {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("setTokenVerifierForTesting is strictly prohibited in production environments.")
+  }
   testVerifier = verifier
 }
 
