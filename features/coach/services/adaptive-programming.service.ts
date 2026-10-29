@@ -172,6 +172,12 @@ export function revertAdaptiveProposal(
       exerciseId: string,
       updates: Partial<ProgramExercise>
     ) => void
+    replaceExerciseInDay?: (
+      programId: string,
+      dayId: string,
+      exerciseId: string,
+      newExerciseId: string
+    ) => void
   }
 ): AdaptiveProposal {
   if (proposal.status !== "accepted") {
@@ -184,6 +190,15 @@ export function revertAdaptiveProposal(
 
   const parsed = JSON.parse(proposal.previousProgramSnapshot)
   const orig: ProgramExercise = parsed.originalExercise
+
+  if (proposal.type === "exercise_substitution" && actions.replaceExerciseInDay && orig.exerciseId) {
+    actions.replaceExerciseInDay(
+      proposal.programId,
+      proposal.dayId,
+      proposal.exerciseId,
+      orig.exerciseId
+    )
+  }
 
   actions.updateExerciseInDay(proposal.programId, proposal.dayId, proposal.exerciseId, {
     targetWeight: orig.targetWeight,

@@ -22,8 +22,8 @@ import { cn } from "@/lib/utils/cn"
 import { useUIStore } from "@/lib/store/ui.store"
 import { useAuthStore } from "@/lib/store/auth.store"
 import { ROUTES } from "@/lib/constants/ROUTES"
-import { signOut } from "firebase/auth"
-import { auth } from "@/lib/firebase/auth"
+import { authService } from "@/features/auth/services/auth.service"
+
 import { toast } from "sonner"
 
 export function Sidebar() {
@@ -33,7 +33,7 @@ export function Sidebar() {
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth)
+      await authService.signOut()
       // Clear cookie for middleware auth checks
       document.cookie = "__session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;"
       toast.success("Signed out successfully")

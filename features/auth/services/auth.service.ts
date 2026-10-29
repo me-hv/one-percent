@@ -21,9 +21,37 @@ function setSessionCookie(token: string) {
   }
 }
 
-function clearSessionCookie() {
+export function clearSessionCookie() {
   if (typeof document !== "undefined") {
-    document.cookie = "__session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;"
+    document.cookie = "__session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax"
+  }
+}
+
+export function clearUserStorage() {
+  if (typeof window !== "undefined") {
+    clearSessionCookie()
+    const userStoreKeys = [
+      "one-percent-workout-store",
+      "one-percent-goals-store",
+      "one-percent-body-store",
+      "one-percent-analytics-store",
+      "one-percent-exercise-store",
+      "one-percent-program-store",
+      "one-percent-recovery-store",
+      "one-percent-coach-store",
+      "one-percent-nutrition-store",
+      "one-percent-sync-queue-v1",
+      "one-percent-template-store",
+      "one-percent-measurement-store",
+      "one-percent-habit-store",
+    ]
+    userStoreKeys.forEach((key) => {
+      try {
+        localStorage.removeItem(key)
+      } catch {
+        // Ignore storage exceptions
+      }
+    })
   }
 }
 
@@ -134,6 +162,6 @@ export const authService = {
    */
   async signOut(): Promise<void> {
     await firebaseSignOut(auth)
-    clearSessionCookie()
+    clearUserStorage()
   },
 }

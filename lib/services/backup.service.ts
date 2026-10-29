@@ -4,6 +4,11 @@ import type { Goal } from "@/lib/types/goals.types"
 import type { WeightLog, BodyMeasurements } from "@/lib/types/body.types"
 import type { HabitLog } from "@/lib/types/habits.types"
 import type { DailyRecoveryEntry } from "@/lib/types/recovery.types"
+import type { DailyNutritionLog, FoodItem, SavedMeal, NutritionTargets } from "@/lib/types/nutrition.types"
+import type { AdaptiveProposal, WeeklyCoachingReview } from "@/features/coach/types/coach.types"
+
+// Maximum allowed backup file size: 15 MB
+export const MAX_BACKUP_SIZE_BYTES = 15 * 1024 * 1024
 
 export interface BackupPayload {
   app: "One Percent"
@@ -21,6 +26,16 @@ export interface BackupPayload {
     bodyMeasurements: BodyMeasurements[]
     habits: HabitLog[]
     recovery?: DailyRecoveryEntry[]
+    nutrition?: {
+      dailyLogs: DailyNutritionLog[]
+      customFoods?: FoodItem[]
+      savedMeals?: SavedMeal[]
+      targets?: NutritionTargets
+    }
+    coach?: {
+      proposals: AdaptiveProposal[]
+      weeklyReviews?: WeeklyCoachingReview[]
+    }
     settings?: Record<string, unknown>
   }
 }
@@ -35,9 +50,9 @@ export interface ValidationResult {
 }
 
 /**
- * Computes a simple checksum for stringified payload data integrity.
+ * Computes a deterministic checksum for payload data integrity.
  */
-function computeChecksum(dataStr: string): string {
+export function computeChecksum(dataStr: string): string {
   let hash = 0
   for (let i = 0; i < dataStr.length; i++) {
     const char = dataStr.charCodeAt(i)
@@ -48,32 +63,54 @@ function computeChecksum(dataStr: string): string {
 }
 
 /**
+ * Reads an array from a persisted Zustand store in localStorage.
+ */
+function getStoreArray<T>(key: string, propName?: string): T[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!parsed || !parsed.state) return []
+    
+    if (propName && Array.isArray(parsed.state[propName])) {
+      return parsed.state[propName] as T[]
+    }
+    
+    // Fallback: search for first array property in state
+    for (const val of Object.values(parsed.state)) {
+      if (Array.isArray(val)) return val as T[]
+    }
+    return []
+  } catch {
+    return []
+  }
+}
+
+/**
  * Exports complete application snapshot as a structured JSON object.
  */
 export function generateAppDataBackup(): BackupPayload {
-  const getItem = <T>(key: string): T[] => {
-    if (typeof window === "undefined") return []
-    try {
-      const raw = localStorage.getItem(key)
-      if (!raw) return []
-      const parsed = JSON.parse(raw)
-      return parsed.state ? (Object.values(parsed.state)[0] as T[]) || [] : []
-    } catch {
-      return []
-    }
-  }
+  const workouts = getStoreArray<WorkoutSession>(STORE_PERSIST_KEYS.workout, "sessions")
+  const programs = getStoreArray<TrainingProgram>(STORE_PERSIST_KEYS.program, "programs")
+  const templates = getStoreArray<WorkoutTemplate>("one-percent-template-store", "templates")
+  const exercises = getStoreArray<Exercise>(STORE_PERSIST_KEYS.exercise, "customExercises")
+  const goals = getStoreArray<Goal>(STORE_PERSIST_KEYS.goals, "goals")
+  const weightLogs = getStoreArray<WeightLog>(STORE_PERSIST_KEYS.body, "weightLogs")
+  const bodyMeasurements = getStoreArray<BodyMeasurements>("one-percent-measurement-store", "measurements")
+  const habits = getStoreArray<HabitLog>("one-percent-habit-store", "habits")
+  const recovery = getStoreArray<DailyRecoveryEntry>(STORE_PERSIST_KEYS.recovery, "entries")
 
-  const workouts = getItem<WorkoutSession>(STORE_PERSIST_KEYS.workout)
-  const programs = getItem<TrainingProgram>(STORE_PERSIST_KEYS.program)
-  const templates = getItem<WorkoutTemplate>("one-percent-template-store")
-  const exercises = getItem<Exercise>(STORE_PERSIST_KEYS.exercise)
-  const goals = getItem<Goal>(STORE_PERSIST_KEYS.goals)
-  const weightLogs = getItem<WeightLog>(STORE_PERSIST_KEYS.body)
-  const bodyMeasurements = getItem<BodyMeasurements>("one-percent-measurement-store")
-  const habits = getItem<HabitLog>("one-percent-habit-store")
-  const recovery = getItem<DailyRecoveryEntry>(STORE_PERSIST_KEYS.recovery)
+  // Nutrition
+  const nutritionLogs = getStoreArray<DailyNutritionLog>(STORE_PERSIST_KEYS.nutrition, "dailyLogs")
+  const customFoods = getStoreArray<FoodItem>(STORE_PERSIST_KEYS.nutrition, "customFoods")
+  const savedMeals = getStoreArray<SavedMeal>(STORE_PERSIST_KEYS.nutrition, "savedMeals")
 
-  const dataPayload = {
+  // Coach
+  const proposals = getStoreArray<AdaptiveProposal>(STORE_PERSIST_KEYS.coach, "proposals")
+  const weeklyReviews = getStoreArray<WeeklyCoachingReview>(STORE_PERSIST_KEYS.coach, "weeklyReviews")
+
+  const dataPayload: BackupPayload["data"] = {
     workouts,
     programs,
     templates,
@@ -83,6 +120,15 @@ export function generateAppDataBackup(): BackupPayload {
     bodyMeasurements,
     habits,
     recovery,
+    nutrition: {
+      dailyLogs: nutritionLogs,
+      customFoods,
+      savedMeals,
+    },
+    coach: {
+      proposals,
+      weeklyReviews,
+    },
   }
 
   const dataStr = JSON.stringify(dataPayload)
@@ -114,13 +160,22 @@ export function downloadBackupFile(): void {
 }
 
 /**
- * Validates JSON schema integrity and version compatibility.
+ * Validates JSON schema integrity, version compatibility, payload size, and checksum.
  */
-export function validateBackupSchema(jsonContent: unknown): ValidationResult {
+export function validateBackupSchema(jsonContent: unknown, rawLength?: number): ValidationResult {
   const errors: string[] = []
   const warnings: string[] = []
 
-  if (!jsonContent || typeof jsonContent !== "object") {
+  // Check oversized raw content if available
+  if (rawLength !== undefined && rawLength > MAX_BACKUP_SIZE_BYTES) {
+    return {
+      valid: false,
+      errors: [`Backup file exceeds the maximum permitted size of 15 MB (${(rawLength / 1024 / 1024).toFixed(1)} MB).`],
+      warnings,
+    }
+  }
+
+  if (!jsonContent || typeof jsonContent !== "object" || Array.isArray(jsonContent)) {
     return { valid: false, errors: ["Invalid backup file format. Must be a valid JSON object."], warnings }
   }
 
@@ -130,23 +185,39 @@ export function validateBackupSchema(jsonContent: unknown): ValidationResult {
     warnings.push("Backup file app signature missing or unrecognized.")
   }
 
-  if (typeof payload.schemaVersion !== "number") {
+  if (typeof payload.schemaVersion !== "number" || isNaN(payload.schemaVersion)) {
     errors.push("Missing required field: schemaVersion")
   } else if (payload.schemaVersion > CURRENT_SCHEMA_VERSION) {
     errors.push(`Backup schema version (${payload.schemaVersion}) is higher than current system version (${CURRENT_SCHEMA_VERSION}). Please update the app first.`)
   }
 
-  if (!payload.data || typeof payload.data !== "object") {
+  if (!payload.data || typeof payload.data !== "object" || Array.isArray(payload.data)) {
     errors.push("Missing required payload object: data")
     return { valid: false, errors, warnings }
   }
 
   const data = payload.data
+
+  // Checksum verification
+  if (payload.checksum) {
+    try {
+      const calculated = computeChecksum(JSON.stringify(data))
+      if (calculated !== payload.checksum) {
+        warnings.push("Data checksum mismatch detected. The backup payload may have been altered or edited externally.")
+      }
+    } catch {
+      warnings.push("Could not verify payload checksum.")
+    }
+  }
+
   const entityCounts = {
     workouts: Array.isArray(data.workouts) ? data.workouts.length : 0,
     programs: Array.isArray(data.programs) ? data.programs.length : 0,
     goals: Array.isArray(data.goals) ? data.goals.length : 0,
     weightLogs: Array.isArray(data.weightLogs) ? data.weightLogs.length : 0,
+    recovery: Array.isArray(data.recovery) ? data.recovery.length : 0,
+    nutrition: Array.isArray(data.nutrition?.dailyLogs) ? data.nutrition!.dailyLogs.length : 0,
+    coachProposals: Array.isArray(data.coach?.proposals) ? data.coach!.proposals.length : 0,
   }
 
   return {
@@ -160,32 +231,56 @@ export function validateBackupSchema(jsonContent: unknown): ValidationResult {
 }
 
 /**
- * Restores data snapshot to application local stores.
+ * Restores data snapshot to application local stores with deduplication and error isolation.
  */
 export function restoreAppDataBackup(backup: BackupPayload, mode: "full" | "merge" = "merge"): void {
   if (typeof window === "undefined") return
 
   const setStore = (key: string, stateProp: string, items: unknown[]) => {
     try {
+      // Filter out null or non-object items to prevent store corruption
+      const safeItems = Array.isArray(items)
+        ? items.filter((item): item is Record<string, unknown> => item !== null && typeof item === "object")
+        : []
+
       if (mode === "full") {
-        localStorage.setItem(key, JSON.stringify({ state: { [stateProp]: items }, version: CURRENT_SCHEMA_VERSION }))
-      } else {
-        const raw = localStorage.getItem(key)
-        let existing: unknown[] = []
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          existing = parsed.state ? (Object.values(parsed.state)[0] as unknown[]) || [] : []
-        }
-        const mergedMap = new Map<string, unknown>()
-        existing.forEach((item) => {
-          if (item && typeof item === "object" && "id" in item) mergedMap.set((item as { id: string }).id, item)
-        })
-        items.forEach((item) => {
-          if (item && typeof item === "object" && "id" in item) mergedMap.set((item as { id: string }).id, item)
-        })
         localStorage.setItem(
           key,
-          JSON.stringify({ state: { [stateProp]: Array.from(mergedMap.values()) }, version: CURRENT_SCHEMA_VERSION })
+          JSON.stringify({ state: { [stateProp]: safeItems }, version: CURRENT_SCHEMA_VERSION })
+        )
+      } else {
+        const raw = localStorage.getItem(key)
+        let existing: Record<string, unknown>[] = []
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw)
+            if (parsed && parsed.state) {
+              const currentList = parsed.state[stateProp] || Object.values(parsed.state)[0]
+              if (Array.isArray(currentList)) {
+                existing = currentList.filter(
+                  (item): item is Record<string, unknown> => item !== null && typeof item === "object"
+                )
+              }
+            }
+          } catch {
+            existing = []
+          }
+        }
+
+        const mergedMap = new Map<string, Record<string, unknown>>()
+        // Deduplicate by id or date
+        const getKey = (item: Record<string, unknown>, idx: number) =>
+          typeof item.id === "string" ? item.id : typeof item.date === "string" ? item.date : `item-${idx}`
+
+        existing.forEach((item, idx) => mergedMap.set(getKey(item, idx), item))
+        safeItems.forEach((item, idx) => mergedMap.set(getKey(item, idx), item))
+
+        localStorage.setItem(
+          key,
+          JSON.stringify({
+            state: { [stateProp]: Array.from(mergedMap.values()) },
+            version: CURRENT_SCHEMA_VERSION,
+          })
         )
       }
     } catch (err) {
@@ -193,11 +288,19 @@ export function restoreAppDataBackup(backup: BackupPayload, mode: "full" | "merg
     }
   }
 
-  setStore(STORE_PERSIST_KEYS.workout, "sessions", backup.data.workouts || [])
-  setStore(STORE_PERSIST_KEYS.program, "programs", backup.data.programs || [])
-  setStore(STORE_PERSIST_KEYS.goals, "goals", backup.data.goals || [])
-  setStore(STORE_PERSIST_KEYS.body, "weightLogs", backup.data.weightLogs || [])
-  setStore(STORE_PERSIST_KEYS.recovery, "entries", backup.data.recovery || [])
+  if (backup.data) {
+    if (backup.data.workouts) setStore(STORE_PERSIST_KEYS.workout, "sessions", backup.data.workouts)
+    if (backup.data.programs) setStore(STORE_PERSIST_KEYS.program, "programs", backup.data.programs)
+    if (backup.data.goals) setStore(STORE_PERSIST_KEYS.goals, "goals", backup.data.goals)
+    if (backup.data.weightLogs) setStore(STORE_PERSIST_KEYS.body, "weightLogs", backup.data.weightLogs)
+    if (backup.data.recovery) setStore(STORE_PERSIST_KEYS.recovery, "entries", backup.data.recovery)
+    if (backup.data.nutrition?.dailyLogs) {
+      setStore(STORE_PERSIST_KEYS.nutrition, "dailyLogs", backup.data.nutrition.dailyLogs)
+    }
+    if (backup.data.coach?.proposals) {
+      setStore(STORE_PERSIST_KEYS.coach, "proposals", backup.data.coach.proposals)
+    }
+  }
 
   // Trigger reload to apply restored state across Zustand stores
   window.location.reload()

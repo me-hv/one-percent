@@ -172,4 +172,31 @@ describe("adaptive-programming.service", () => {
       })
     )
   })
+
+  it("reverts an exercise substitution back to the original exercise ID", () => {
+    const proposal = createAdaptiveProposal({
+      userId: "user-1",
+      program: mockProgram,
+      day: mockDay,
+      exercise: mockExercise, // original was "squat"
+      type: "exercise_substitution",
+      substitutedExerciseId: "leg-press",
+      substitutedExerciseName: "Leg Press",
+      rationale: "Knee soreness flare-up",
+      evidence: [],
+    })
+
+    const updateExerciseInDay = vi.fn()
+    const replaceExerciseInDay = vi.fn()
+
+    const accepted = applyAdaptiveProposal(proposal, { updateExerciseInDay, replaceExerciseInDay })
+    expect(replaceExerciseInDay).toHaveBeenCalledWith("prog-test", "day-leg", "ex-101", "leg-press")
+
+    replaceExerciseInDay.mockClear()
+    updateExerciseInDay.mockClear()
+
+    const reverted = revertAdaptiveProposal(accepted, { updateExerciseInDay, replaceExerciseInDay })
+    expect(reverted.status).toBe("reverted")
+    expect(replaceExerciseInDay).toHaveBeenCalledWith("prog-test", "day-leg", "ex-101", "squat")
+  })
 })

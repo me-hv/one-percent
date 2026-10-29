@@ -1,17 +1,55 @@
 import { NextRequest, NextResponse } from "next/server"
+import { authenticateServerRequest, checkRateLimit } from "@/lib/auth/server-auth"
+
+// 32 KB maximum request payload size
+const MAX_PAYLOAD_SIZE = 32 * 1024
+const MAX_MESSAGE_LENGTH = 1000
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { message, history, contextSummary } = body
+    // 1. Enforce content-length limits
+    const contentLength = req.headers.get("content-length")
+    if (contentLength && parseInt(contentLength, 10) > MAX_PAYLOAD_SIZE) {
+      return NextResponse.json({ error: "Payload too large" }, { status: 413 })
+    }
 
-    if (!message || typeof message !== "string") {
+    // 2. Authenticate request (verifies session cookie or Bearer token)
+    const authContext = await authenticateServerRequest(req)
+    if (!authContext.authenticated || !authContext.userId) {
+      return NextResponse.json(
+        { error: authContext.error || "Authentication required" },
+        { status: 401 }
+      )
+    }
+
+    // 3. Enforce rate limiting
+    const clientIdentifier = authContext.userId
+    if (!checkRateLimit(clientIdentifier)) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Please wait a moment before sending more messages." },
+        { status: 429 }
+      )
+    }
+
+    // 4. Validate input payload
+    const body = await req.json()
+    const { message, contextSummary } = body
+
+    if (!message || typeof message !== "string" || !message.trim()) {
       return NextResponse.json({ error: "Missing required query" }, { status: 400 })
     }
 
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json(
+        { error: `Message exceeds maximum permitted length of ${MAX_MESSAGE_LENGTH} characters` },
+        { status: 400 }
+      )
+    }
+
+    // 5. Check if external LLM is configured
     const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey || apiKey.includes("xxxxxxxx")) {
-      // No valid server-side LLM configured; return 404 so client cleanly falls back to deterministic engine
+      // Clean 404 indicates LLM is not configured, triggering instant client-side deterministic fallback
       return NextResponse.json({ error: "LLM endpoint not configured" }, { status: 404 })
     }
 
@@ -28,7 +66,7 @@ Guidelines:
 2. Answer the user's specific inquiry directly and concisely.
 3. Suggest 2-3 specific follow-up questions.`
 
-    const promptText = `${systemPrompt}\n\nUser Question: ${message}`
+    const promptText = `${systemPrompt}\n\nUser Question: ${message.trim()}`
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 6000)

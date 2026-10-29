@@ -87,6 +87,7 @@ export function useAdaptiveProgramming(userId: string) {
       try {
         const reverted = revertAdaptiveProposal(proposal, {
           updateExerciseInDay,
+          replaceExerciseInDay,
         })
 
         updateProposalStatus(proposal.id, "reverted")

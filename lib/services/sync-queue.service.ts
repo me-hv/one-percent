@@ -16,6 +16,7 @@ export type SyncEntityType =
   | "recovery"
   | "coach"
   | "proposal"
+  | "nutrition"
 
 export type SyncAction = "create" | "update" | "delete"
 

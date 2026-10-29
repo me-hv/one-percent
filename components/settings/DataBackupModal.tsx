@@ -32,7 +32,7 @@ export function DataBackupModal({ isOpen, onClose }: DataBackupModalProps) {
     reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target?.result as string)
-        const result = validateBackupSchema(json)
+        const result = validateBackupSchema(json, file.size)
         setValidation(result)
         if (result.valid) {
           setImportedFile(json as BackupPayload)

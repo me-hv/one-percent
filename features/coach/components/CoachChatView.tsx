@@ -87,9 +87,15 @@ export function CoachChatView() {
       let reply: CoachChatMessage | null = null
 
       try {
+        const idToken = user ? await user.getIdToken().catch(() => null) : null
+
         const res = await fetch("/api/coach/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+          },
+          credentials: "same-origin",
           body: JSON.stringify({
             message: trimmed,
             history: chatMessages.slice(-6),

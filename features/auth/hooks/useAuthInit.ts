@@ -56,6 +56,9 @@ export function useAuthInit() {
             setUser(null)
             setProfile(null)
             setPreferences(null)
+            if (typeof document !== "undefined") {
+              document.cookie = "__session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax"
+            }
           }
         } catch (error: any) {
           console.error("[useAuthInit] Error loading auth details:", error)
