@@ -143,10 +143,11 @@ describe("End-to-End Core User Journey (13 Milestones)", () => {
     }
 
     // ─── STAGE 4: Log Nutrition and Hydration ────────────────────────
+    const todayDateStr = new Date().toISOString().split("T")[0] || "2026-11-04"
     const nutritionLog: DailyNutritionLog = {
       id: `nut-${timestamp}`,
       userId: athleteAUid,
-      date: "2026-10-29",
+      date: todayDateStr,
       totalCalories: 2650,
       totalProtein: 185,
       totalCarbs: 300,
@@ -170,7 +171,7 @@ describe("End-to-End Core User Journey (13 Milestones)", () => {
     const recoveryEntry: DailyRecoveryEntry = {
       id: `rec-${timestamp}`,
       userId: athleteAUid,
-      date: "2026-10-29",
+      date: todayDateStr,
       sleepDurationMinutes: 480, // 8.0 hrs
       sleepQuality: 4,
       energy: 4,

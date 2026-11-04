@@ -5,7 +5,7 @@ import type { DailyRecoveryEntry } from "@/lib/types/recovery.types"
 import type { DailyNutritionLog, NutritionTargets } from "@/lib/types/nutrition.types"
 
 describe("weekly-review.service", () => {
-  const now = new Date()
+  const now = new Date("2026-10-29T12:00:00.000Z")
   const todayMs = now.getTime()
 
   const createCompletedSession = (daysAgo: number, volumeKg: number): WorkoutSession => ({

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "One Percent — Fitness Operating System. Get 1% Better Every Day.",
+  "packageManager": "pnpm@11.10.0",
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=11.0.0"
