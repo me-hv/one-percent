@@ -1,10 +1,12 @@
+packages:
+  - '.'
+
 allowBuilds:
   '@firebase/util': true
   protobufjs: true
-  re2: false
+  re2: true
   sharp: true
   unrs-resolver: true
 ignoredBuiltDependencies:
-  - re2
   - sharp
   - unrs-resolver
