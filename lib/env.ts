@@ -47,7 +47,21 @@ const serverEnvSchema = clientEnvSchema.extend({
 
 // ─── Validate and Export ───────────────────────────────────────────
 
-function validateClientEnv() {
+const BUILD_TIME_CLIENT_PLACEHOLDERS: ClientEnv = {
+  NEXT_PUBLIC_FIREBASE_API_KEY: "build-placeholder-api-key",
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "build-placeholder.firebaseapp.com",
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: "build-placeholder",
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: "build-placeholder.appspot.com",
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "000000000000",
+  NEXT_PUBLIC_FIREBASE_APP_ID: "1:000000000000:web:000000000000",
+  NEXT_PUBLIC_POSTHOG_KEY: undefined,
+  NEXT_PUBLIC_POSTHOG_HOST: undefined,
+  NEXT_PUBLIC_SENTRY_DSN: undefined,
+  NEXT_PUBLIC_APP_ENV: "development",
+  NEXT_PUBLIC_USE_FIREBASE_EMULATOR: false,
+}
+
+function validateClientEnv(): ClientEnv {
   const result = clientEnvSchema.safeParse({
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -65,6 +79,28 @@ function validateClientEnv() {
   })
 
   if (!result.success) {
+    const isBuildPhase =
+      process.env.NEXT_PHASE === "phase-production-build" ||
+      process.env.npm_lifecycle_event === "build" ||
+      typeof window === "undefined" ||
+      !process.env.NEXT_PUBLIC_FIREBASE_API_KEY
+
+    if (isBuildPhase) {
+      if (typeof console !== "undefined") {
+        console.warn(
+          "\n[One Percent] ⚠️ Notice: NEXT_PUBLIC_FIREBASE_* environment variables are missing or incomplete.\n" +
+          "Using build-time fallback placeholders to permit static page generation.\n" +
+          "To enable live client authentication, set NEXT_PUBLIC_FIREBASE_* in your Vercel project settings.\n"
+        )
+      }
+      return {
+        ...BUILD_TIME_CLIENT_PLACEHOLDERS,
+        NEXT_PUBLIC_APP_ENV:
+          (process.env.NEXT_PUBLIC_APP_ENV as any) ||
+          (process.env.NODE_ENV === "production" ? "production" : "development"),
+      }
+    }
+
     const errors = result.error.issues
       .map((issue) => `  • ${issue.path.join(".")}: ${issue.message}`)
       .join("\n")
@@ -79,6 +115,14 @@ function validateClientEnv() {
 
 // Export validated client env — safe to use anywhere
 export const env = validateClientEnv()
+
+export function isFirebaseClientConfigured(): boolean {
+  return (
+    Boolean(env.NEXT_PUBLIC_FIREBASE_API_KEY) &&
+    !env.NEXT_PUBLIC_FIREBASE_API_KEY.includes("placeholder") &&
+    !env.NEXT_PUBLIC_FIREBASE_API_KEY.includes("your-")
+  )
+}
 
 // Export server env validator — only call in server contexts
 export function validateServerEnv() {
